@@ -11,9 +11,6 @@ exports[`CacheableImage renders correctly 1`] = `
   }
 >
   <Text
-    accessible={true}
-    allowFontScaling={true}
-    ellipsizeMode="tail"
     style={
       Object {
         "fontSize": 20,
@@ -46,9 +43,6 @@ exports[`CacheableImage renders correctly with placeholder option set 1`] = `
   }
 >
   <Text
-    accessible={true}
-    allowFontScaling={true}
-    ellipsizeMode="tail"
     style={
       Object {
         "fontSize": 20,
@@ -82,9 +76,6 @@ exports[`CacheableImage renders correctly with placeholder prop set 1`] = `
   }
 >
   <Text
-    accessible={true}
-    allowFontScaling={true}
-    ellipsizeMode="tail"
     style={
       Object {
         "fontSize": 20,
@@ -95,8 +86,6 @@ exports[`CacheableImage renders correctly with placeholder prop set 1`] = `
   >
     Test CacheableImage Component
   </Text>
-  <Image
-    style={undefined}
-  />
+  <Image />
 </View>
 `;

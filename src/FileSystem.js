@@ -14,7 +14,6 @@ import sha1 from 'crypto-js/sha1';
 import URL from 'url-parse';
 
 export class FileSystem {
-
   /**
    * All FileSystem instances will reference the cacheLock singleton "dictionary" to provide cache file locking in order to prevent concurrency race condition bugs.
    *
@@ -39,7 +38,6 @@ export class FileSystem {
   static cacheLock = {};
 
   static lockCacheFile(fileName, componentId) {
-
     // If file is already locked, add additional component lock, else create initial file lock.
     if (FileSystem.cacheLock[fileName]) {
       FileSystem.cacheLock[fileName][componentId] = true;
@@ -48,21 +46,21 @@ export class FileSystem {
       componentDict[componentId] = true;
       FileSystem.cacheLock[fileName] = componentDict;
     }
-
   }
 
   static unlockCacheFile(fileName, componentId) {
-
     // Delete component lock on cache file
     if (FileSystem.cacheLock[fileName]) {
       delete FileSystem.cacheLock[fileName][componentId];
     }
 
     // If no further component locks remain on cache file, delete filename property from cacheLock dictionary.
-    if (FileSystem.cacheLock[fileName] && Object.keys(FileSystem.cacheLock[fileName]).length === 0) {
+    if (
+      FileSystem.cacheLock[fileName] &&
+      Object.keys(FileSystem.cacheLock[fileName]).length === 0
+    ) {
       delete FileSystem.cacheLock[fileName];
     }
-
   }
 
   constructor(cachePruneTriggerLimit = null, fileDirName = null) {
@@ -87,8 +85,11 @@ export class FileSystem {
    * @private
    */
   _setBaseFilePath(fileDirName = null) {
-    let baseFilePath = (this.os == 'ios') ? RNFetchBlob.fs.dirs.CacheDir : RNFetchBlob.fs.dirs.DocumentDir;
-    baseFilePath +=  '/' + fileDirName + '/';
+    let baseFilePath =
+      this.os == 'ios'
+        ? RNFetchBlob.fs.dirs.CacheDir
+        : RNFetchBlob.fs.dirs.DocumentDir;
+    baseFilePath += '/' + fileDirName + '/';
     return baseFilePath;
   }
 
@@ -107,14 +108,15 @@ export class FileSystem {
    * @private
    */
   _validatePath(path, absolute = false) {
-    let resolvedPath = (absolute) ? pathLib.resolve(path) : pathLib.resolve(this.baseFilePath + path); // resolve turns any path into an absolute path (ie: /folder1/folder2/../example.js resolves to /folder1/example.js)
+    let resolvedPath = absolute
+      ? pathLib.resolve(path)
+      : pathLib.resolve(this.baseFilePath + path); // resolve turns any path into an absolute path (ie: /folder1/folder2/../example.js resolves to /folder1/example.js)
 
     if (resolvedPath.substr(0, this.baseFilePath.length) != this.baseFilePath) {
       throw new Error(resolvedPath + ' is not a valid file path.');
     } else {
       return true;
     }
-
   }
 
   /**
@@ -138,12 +140,11 @@ export class FileSystem {
    * @returns fileName {string} - A SHA1 filename that is unique to the resource located at passed in URL and includes an appropriate extension.
    */
   async getFileNameFromUrl(url) {
-
     const urlParts = new URL(url);
     const urlExt = urlParts.pathname.split('.').pop();
 
     let extension = null;
-    switch(urlExt) {
+    switch (urlExt) {
       case 'png':
       case 'PNG':
         extension = 'png';
@@ -171,7 +172,6 @@ export class FileSystem {
     }
 
     return sha1(url).toString() + '.' + extension;
-
   }
 
   /**
@@ -184,28 +184,25 @@ export class FileSystem {
    * @returns extension {string} - A file extension appropriate for remote file.
    */
   async getExtensionFromContentTypeHeader(url) {
-
     let extension = null;
     let contentType = null;
 
     // Request "Content-type" header from server.
-    try{
-
+    try {
       const response = await fetch(url, {
-        method: 'HEAD'
+        method: 'HEAD',
       });
 
       if (response.headers.get('content-type')) {
         const rawContentType = response.headers.get('content-type'); // headers are case-insensitive, fetch standard is all lower case.
         contentType = rawContentType.toLowerCase();
       }
-
     } catch (error) {
       console.warn(error); // eslint-disable-line no-console
     }
 
     // Use content type header to determine extension.
-    switch(contentType) {
+    switch (contentType) {
       case 'image/png':
         extension = 'png';
         break;
@@ -223,7 +220,6 @@ export class FileSystem {
     }
 
     return extension;
-
   }
 
   /**
@@ -236,7 +232,6 @@ export class FileSystem {
    * @returns {Promise} promise that resolves to the local file path of downloaded url file.
    */
   async getLocalFilePathFromUrl(url, permanent) {
-
     let filePath = null;
 
     let fileName = await this.getFileNameFromUrl(url);
@@ -247,22 +242,15 @@ export class FileSystem {
     let exists = await Promise.all([permanentFileExists, cacheFileExists]);
 
     if (exists[0]) {
-
       filePath = this.baseFilePath + 'permanent/' + fileName;
-
     } else if (exists[1]) {
-
       filePath = this.baseFilePath + 'cache/' + fileName;
-
     } else {
-
       let result = await this.fetchFile(url, permanent, null, true); // Clobber must be true to allow concurrent CacheableImage components with same source url (ie: bullet point images).
       filePath = result.path;
-
     }
 
     return filePath;
-
   }
 
   /**
@@ -276,15 +264,19 @@ export class FileSystem {
    * @returns {Promise} promise that resolves to an object that contains the local path of the downloaded file and the filename.
    */
   async fetchFile(url, permanent = false, fileName = null, clobber = false) {
-
-    fileName = fileName || await this.getFileNameFromUrl(url);
-    let path = this.baseFilePath + (permanent ? 'permanent' : 'cache') + '/' + fileName;
+    fileName = fileName || (await this.getFileNameFromUrl(url));
+    let path =
+      this.baseFilePath + (permanent ? 'permanent' : 'cache') + '/' + fileName;
     this._validatePath(path, true);
 
     // Clobber logic
-    let fileExistsAtPath = await this.exists((permanent ? 'permanent/' : 'cache/') + fileName);
+    let fileExistsAtPath = await this.exists(
+      (permanent ? 'permanent/' : 'cache/') + fileName
+    );
     if (!clobber && fileExistsAtPath) {
-      throw new Error('A file already exists at ' + path + ' and clobber is set to false.');
+      throw new Error(
+        'A file already exists at ' + path + ' and clobber is set to false.'
+      );
     }
 
     // Logic here prunes cache directory on "cache" writes to ensure cache doesn't get too large.
@@ -295,26 +287,19 @@ export class FileSystem {
     // Hit network and download file to local disk.
     let result = null;
     try {
-
-      result = await RNFetchBlob
-        .config({
-          path: path
-        })
-        .fetch('GET', url);
-
-    } catch(error) {
-
+      result = await RNFetchBlob.config({
+        path: path,
+      }).fetch('GET', url);
+    } catch (error) {
       // File must be manually removed on download error https://github.com/wkh237/react-native-fetch-blob/issues/331
       await RNFetchBlob.fs.unlink(path);
       throw error;
-
     }
 
     return {
       path: result.path(),
-      fileName: pathLib.basename(path)
+      fileName: pathLib.basename(path),
     };
-
   }
 
   /**
@@ -325,9 +310,8 @@ export class FileSystem {
    * @returns {Promise}
    */
   async pruneCache() {
-
     // If cache directory does not exist yet there's no need for pruning.
-    if (!await this.exists('cache')) {
+    if (!(await this.exists('cache'))) {
       return;
     }
 
@@ -345,25 +329,25 @@ export class FileSystem {
 
     // Prune cache if current cache size is too big.
     if (currentCacheSize > this.cachePruneTriggerLimit) {
-
       let overflowSize = currentCacheSize - this.cachePruneTriggerLimit;
 
       // Keep deleting cached files so long as the current cache size is larger than the size required to trigger cache pruning, or until
       // all cache files have been evaluated.
       while (overflowSize > 0 && lstat.length) {
-
         let blobStatObject = lstat.shift();
 
         // Only prune unlocked files from cache
-        if (!FileSystem.cacheLock[blobStatObject.filename] && this._validatePath('cache/' + blobStatObject.filename)) {
+        if (
+          !FileSystem.cacheLock[blobStatObject.filename] &&
+          this._validatePath('cache/' + blobStatObject.filename)
+        ) {
           overflowSize = overflowSize - parseInt(blobStatObject.size);
-          RNFetchBlob.fs.unlink(this.baseFilePath + 'cache/' + blobStatObject.filename);
+          RNFetchBlob.fs.unlink(
+            this.baseFilePath + 'cache/' + blobStatObject.filename
+          );
         }
-
       }
-
     }
-
   }
 
   /**
@@ -381,9 +365,7 @@ export class FileSystem {
     } catch (error) {
       return false;
     }
-
   }
-
 }
 
 /**
@@ -391,7 +373,10 @@ export class FileSystem {
  *
  * @returns {FileSystem}
  */
-export default function FileSystemFactory(cachePruneTriggerLimit = null, fileDirName = null) {
+export default function FileSystemFactory(
+  cachePruneTriggerLimit = null,
+  fileDirName = null
+) {
   if (!(this instanceof FileSystem)) {
     return new FileSystem(cachePruneTriggerLimit, fileDirName);
   }

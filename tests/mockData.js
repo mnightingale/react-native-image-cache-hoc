@@ -9,8 +9,8 @@ export const mockData = {
   basePath: '/base/file/path',
   mockCacheableImageProps: {
     source: {
-      uri: 'https://i.redd.it/rc29s4bz61uz.png'
+      uri: 'https://i.redd.it/rc29s4bz61uz.png',
     },
-    permanent: false
-  }
+    permanent: false,
+  },
 };
