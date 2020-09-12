@@ -4,56 +4,124 @@
  *
  */
 
-/* global jest require */
+/* global jest */
+import * as ReactNative from 'react-native';
 
 /**
  * Override native modules with mocks where necessary.
  */
 jest.mock('react-native', () => {
-
-  let ReactNative = require.requireActual('react-native');
-
-  ReactNative.Platform.OS = 'ios';
-
-  return ReactNative;
-
+  return Object.setPrototypeOf(
+    {
+      Platform: {
+        ...ReactNative.Platform,
+        OS: 'ios',
+        isTesting: true,
+        select: (objs) => objs['ios'],
+      },
+    },
+    ReactNative
+  );
 });
 
-jest.mock('rn-fetch-blob', () => {
+jest.mock(
+  'react-native-fs',
+  () => {
+    const { mockData } = require('./mockData');
 
-  const { mockData } = require('./mockData');
-
-  // Define mock object before returning so it can reference itself to resolve method chains.
-  let mockRNFetchBlob = {
-    fs: {
-      dirs: {
-        CacheDir: mockData.basePath,
-        DocumentDir: mockData.basePath
-      },
+    return {
+      mkdir: jest.fn(),
+      moveFile: jest.fn(),
+      copyFile: jest.fn(),
+      pathForBundle: jest.fn(),
+      pathForGroup: jest.fn(),
+      getFSInfo: jest.fn(),
+      getAllExternalFilesDirs: jest.fn(),
+      unlink: jest.fn(),
       exists: jest.fn(),
-      lstat: () => {
-
+      stopDownload: jest.fn(),
+      resumeDownload: jest.fn(),
+      isResumable: jest.fn(),
+      stopUpload: jest.fn(),
+      completeHandlerIOS: jest.fn(),
+      readDir: () => {
         let lstat = [
-          {'size':'43663','path':mockData.basePath + '/cache/0fbbfec764c73ee5b4e3a0cb8861469bc9fc6c8c.jpg','filename':'0fbbfec764c73ee5b4e3a0cb8861469bc9fc6c8c.jpg','lastModified':1508878829000,'type':'file'},
-          {'size':'9000000','path':mockData.basePath + '/cache/6865fd0a65771b0044319f562873cc7b145abb4a.jpg','filename':'6865fd0a65771b0044319f562873cc7b145abb4a.jpg','lastModified':1508877930000,'type':'file'},
-          {'size':'14133330','path':mockData.basePath + '/cache/b003269c377af6a2f53f59bc127a06c86f54312b.jpg','filename':'b003269c377af6a2f53f59bc127a06c86f54312b.jpg','lastModified':1508877698000,'type':'file'},
-          {'size':'1684','path':mockData.basePath + '/cache/d1052b9f22c1f00f4d658224f4295307b97db69f.jpg','filename':'d1052b9f22c1f00f4d658224f4295307b97db69f.jpg','lastModified':1508877954000,'type':'file'},
-          {'size':'65769','path':mockData.basePath + '/cache/faf4e58257d988ea6eab23aee5e5733bff9b2a9e.jpg','filename':'faf4e58257d988ea6eab23aee5e5733bff9b2a9e.jpg','lastModified':1509634852000,'type':'file'}
+          {
+            ctime: new Date(1508878829000),
+            mtime: new Date(1508878829000),
+            name: '0fbbfec764c73ee5b4e3a0cb8861469bc9fc6c8c.jpg',
+            path: mockData.basePath + '/cache/0fbbfec764c73ee5b4e3a0cb8861469bc9fc6c8c.jpg',
+            size: '43663',
+            isFile: () => true,
+            isDirectory: () => false,
+          },
+          {
+            ctime: new Date(1508877930000),
+            mtime: new Date(1508877930000),
+            name: '6865fd0a65771b0044319f562873cc7b145abb4a.jpg',
+            path: mockData.basePath + '/cache/6865fd0a65771b0044319f562873cc7b145abb4a.jpg',
+            size: '9000000',
+            isFile: () => true,
+            isDirectory: () => false,
+          },
+          {
+            ctime: new Date(1508877698000),
+            mtime: new Date(1508877698000),
+            name: 'b003269c377af6a2f53f59bc127a06c86f54312b.jpg',
+            path: mockData.basePath + '/cache/b003269c377af6a2f53f59bc127a06c86f54312b.jpg',
+            size: '14133330',
+            isFile: () => true,
+            isDirectory: () => false,
+          },
+          {
+            ctime: new Date(1508877954000),
+            mtime: new Date(1508877954000),
+            name: 'd1052b9f22c1f00f4d658224f4295307b97db69f.jpg',
+            path: mockData.basePath + '/cache/d1052b9f22c1f00f4d658224f4295307b97db69f.jpg',
+            size: '1684',
+            isFile: () => true,
+            isDirectory: () => false,
+          },
+          {
+            ctime: new Date(1509634852000),
+            mtime: new Date(1509634852000),
+            name: 'faf4e58257d988ea6eab23aee5e5733bff9b2a9e.jpg',
+            path: mockData.basePath + '/cache/faf4e58257d988ea6eab23aee5e5733bff9b2a9e.jpg',
+            size: '65769',
+            isFile: () => true,
+            isDirectory: () => false,
+          },
         ];
 
-        return lstat;
-
+        return Promise.resolve(lstat);
       },
-      unlink: jest.fn()
-    }
-  };
-
-  mockRNFetchBlob.config = () => {
-    return mockRNFetchBlob; // Must return reference to self to support method chaining.
-  };
-
-  mockRNFetchBlob.fetch = jest.fn();
-
-  return mockRNFetchBlob;
-
-});
+      readDirAssets: jest.fn(),
+      existsAssets: jest.fn(),
+      readdir: jest.fn(),
+      setReadable: jest.fn(),
+      stat: jest.fn(),
+      readFile: jest.fn(),
+      read: jest.fn(),
+      readFileAssets: jest.fn(),
+      hash: jest.fn(),
+      copyFileAssets: jest.fn(),
+      copyFileAssetsIOS: jest.fn(),
+      copyAssetsVideoIOS: jest.fn(),
+      writeFile: jest.fn(),
+      appendFile: jest.fn(),
+      write: jest.fn(),
+      downloadFile: jest.fn(),
+      uploadFiles: jest.fn(),
+      touch: jest.fn(),
+      MainBundlePath: jest.fn(),
+      CachesDirectoryPath: mockData.basePath,
+      DocumentDirectoryPath: mockData.basePath,
+      ExternalDirectoryPath: jest.fn(),
+      ExternalStorageDirectoryPath: jest.fn(),
+      TemporaryDirectoryPath: jest.fn(),
+      LibraryDirectoryPath: jest.fn(),
+      PicturesDirectoryPath: jest.fn(),
+    };
+  },
+  { virtual: true }
+);

@@ -1,6 +1,5 @@
-
 // Define globals for eslint.
-/* global describe it require jest */
+/* global describe it jest */
 
 // Load dependencies
 import should from 'should'; // eslint-disable-line no-unused-vars
@@ -10,30 +9,32 @@ import { Image } from 'react-native';
 import sinon from 'sinon';
 import 'should-sinon';
 
-describe('CacheableImage', function() {
-
+describe('CacheableImage', function () {
   it('HOC options validation should work as expected.', () => {
-
     // Check validation is catching bad option input.
     try {
       imageCacheHoc(Image, {
-        validProtocols: 'string'
+        validProtocols: 'string',
       });
     } catch (error) {
-      error.should.deepEqual(new Error('validProtocols option must be an array of protocol strings.'));
+      error.should.deepEqual(
+        new Error('validProtocols option must be an array of protocol strings.')
+      );
     }
 
     try {
       imageCacheHoc(Image, {
-        fileHostWhitelist: 'string'
+        fileHostWhitelist: 'string',
       });
     } catch (error) {
-      error.should.deepEqual(new Error('fileHostWhitelist option must be an array of host strings.'));
+      error.should.deepEqual(
+        new Error('fileHostWhitelist option must be an array of host strings.')
+      );
     }
 
     try {
       imageCacheHoc(Image, {
-        cachePruneTriggerLimit: 'string'
+        cachePruneTriggerLimit: 'string',
       });
     } catch (error) {
       error.should.deepEqual(new Error('cachePruneTriggerLimit option must be an integer.'));
@@ -41,7 +42,7 @@ describe('CacheableImage', function() {
 
     try {
       imageCacheHoc(Image, {
-        fileDirName: 1
+        fileDirName: 1,
       });
     } catch (error) {
       error.should.deepEqual(new Error('fileDirName option must be string'));
@@ -49,10 +50,14 @@ describe('CacheableImage', function() {
 
     try {
       imageCacheHoc(Image, {
-        defaultPlaceholder: 5478329
+        defaultPlaceholder: 5478329,
       });
     } catch (error) {
-      error.should.deepEqual(new Error('defaultPlaceholder option object must include "component" and "props" properties (props can be an empty object)'));
+      error.should.deepEqual(
+        new Error(
+          'defaultPlaceholder option object must include "component" and "props" properties (props can be an empty object)'
+        )
+      );
     }
 
     const validOptions = {
@@ -62,8 +67,8 @@ describe('CacheableImage', function() {
       fileDirName: 'test-dir',
       defaultPlaceholder: {
         component: Image,
-        props: {}
-      }
+        props: {},
+      },
     };
 
     // Valid options shouldn't throw an error
@@ -73,11 +78,9 @@ describe('CacheableImage', function() {
     const cacheableImage = new CacheableImage(mockData.mockCacheableImageProps);
 
     cacheableImage.options.should.have.properties(validOptions);
-
   });
 
   it('Component property type validation should exist.', () => {
-
     const CacheableImage = imageCacheHoc(Image);
 
     Object.keys(CacheableImage.propTypes).should.deepEqual([
@@ -85,100 +88,76 @@ describe('CacheableImage', function() {
       'source',
       'permanent',
       'style',
-      'placeholder'
+      'placeholder',
+      'onLoadFinished',
     ]);
-
   });
 
   it('#cacheFile static method should work as expected for cache dir files.', () => {
-
-    // RNFetchBlob Mocks
-    const RNFetchBlob = require('rn-fetch-blob');
+    // RNFS Mocks
+    const RNFS = require('react-native-fs');
 
     // Mock that file does not exist on local fs.
-    RNFetchBlob.fs.exists
-      .mockReturnValue(false);
+    RNFS.exists.mockResolvedValue(false);
 
-    // Mock fetch result
-    RNFetchBlob.fetch
-      .mockReturnValue({
-        path: () => {
-          return '/this/is/path/to/file.jpg';
-        }
-      });
+    // Mock downloadFile result
+    RNFS.downloadFile.mockReturnValue({
+      promise: Promise.resolve({ statusCode: 200 }),
+    });
 
     const CacheableImage = imageCacheHoc(Image);
 
-    return CacheableImage.cacheFile('https://i.redd.it/rc29s4bz61uz.png')
-      .then(result => {
-
-        result.should.deepEqual({
-          url: 'https://i.redd.it/rc29s4bz61uz.png',
-          cacheType: 'cache',
-          localFilePath: '/this/is/path/to/file.jpg'
-        });
-
+    return CacheableImage.cacheFile('https://i.redd.it/rc29s4bz61uz.png').then((result) => {
+      result.should.deepEqual({
+        url: 'https://i.redd.it/rc29s4bz61uz.png',
+        cacheType: 'cache',
+        localFilePath: '/base/file/path/react-native-image-cache-hoc/cache/d3b74e9fa8248a5805e2dcf17a8577acd28c089b.png',
       });
-
+    });
   });
 
   it('#cacheFile static method should work as expected for permanent dir files.', () => {
-
-    // RNFetchBlob Mocks
-    const RNFetchBlob = require('rn-fetch-blob');
+    // RNFS Mocks
+    const RNFS = require('react-native-fs');
 
     // Mock that file does not exist on local fs.
-    RNFetchBlob.fs.exists
-      .mockReturnValue(false);
+    RNFS.exists.mockResolvedValue(false);
 
-    // Mock fetch result
-    RNFetchBlob.fetch
-      .mockReturnValue({
-        path: () => {
-          return '/this/is/path/to/file.jpg';
-        }
-      });
+    // Mock downloadFile result
+    RNFS.downloadFile.mockReturnValue({
+      promise: Promise.resolve({ statusCode: 200 }),
+    });
 
     const CacheableImage = imageCacheHoc(Image);
 
-    return CacheableImage.cacheFile('https://i.redd.it/rc29s4bz61uz.png', true)
-      .then(result => {
-
-        result.should.deepEqual({
-          url: 'https://i.redd.it/rc29s4bz61uz.png',
-          cacheType: 'permanent',
-          localFilePath: '/this/is/path/to/file.jpg'
-        });
-
+    return CacheableImage.cacheFile('https://i.redd.it/rc29s4bz61uz.png', true).then((result) => {
+      result.should.deepEqual({
+        url: 'https://i.redd.it/rc29s4bz61uz.png',
+        cacheType: 'permanent',
+        localFilePath: '/base/file/path/react-native-image-cache-hoc/permanent/d3b74e9fa8248a5805e2dcf17a8577acd28c089b.png',
       });
-
+    });
   });
 
   it('#flush static method should work as expected.', () => {
-
-    // RNFetchBlob Mocks
-    const RNFetchBlob = require('rn-fetch-blob');
+    // RNFS Mocks
+    const RNFS = require('react-native-fs');
 
     // Mock unlink to always be true.
-    RNFetchBlob.fs.unlink
-      .mockReturnValue(true);
+    RNFS.exists.mockResolvedValue(true);
+    RNFS.unlink.mockResolvedValue(true);
 
     const CacheableImage = imageCacheHoc(Image);
 
-    return CacheableImage.flush()
-      .then(result => {
-
-        result.should.deepEqual({
-          permanentDirFlushed: true,
-          cacheDirFlushed: true
-        });
-
+    return CacheableImage.flush().then((result) => {
+      result.should.deepEqual({
+        permanentDirFlushed: true,
+        cacheDirFlushed: true,
       });
-
+    });
   });
 
   it('#constructor should initialize class object properties correctly.', () => {
-
     const CacheableImage = imageCacheHoc(Image);
 
     const cacheableImage = new CacheableImage(mockData.mockCacheableImageProps);
@@ -186,92 +165,107 @@ describe('CacheableImage', function() {
     // Ensure defaults set correctly
     cacheableImage.props.should.have.properties(mockData.mockCacheableImageProps);
     cacheableImage.state.should.have.properties({
-      localFilePath: null
+      localFilePath: null,
     });
     cacheableImage.options.should.have.properties({
-      validProtocols: [ 'https' ],
+      validProtocols: ['https'],
       fileHostWhitelist: [],
       cachePruneTriggerLimit: 15728640,
       fileDirName: null,
-      defaultPlaceholder: null
+      defaultPlaceholder: null,
     });
     cacheableImage.fileSystem.should.have.properties({
       os: 'ios',
       cachePruneTriggerLimit: 15728640,
-      baseFilePath: mockData.basePath + '/react-native-image-cache-hoc/'
+      baseFilePath: mockData.basePath + '/react-native-image-cache-hoc/',
     });
-
   });
 
   it('#_validateImageComponent should validate bad component props correctly.', () => {
-
     // Verify source uri prop only accepts web accessible urls.
 
     const CacheableImage = imageCacheHoc(Image);
 
     try {
-
-      const cacheableImage = new CacheableImage({ // eslint-disable-line no-unused-vars
+      // eslint-disable-next-line no-unused-vars
+      const cacheableImage = new CacheableImage({
         source: {
-          uri: './local-file.jpg'
-        }
+          uri: './local-file.jpg',
+        },
       });
 
       throw new Error('Invalid source uri prop was accepted.');
     } catch (error) {
-      error.should.deepEqual(new Error('Invalid source prop. <CacheableImage> props.source.uri should be a web accessible url with a valid protocol and host. NOTE: Default valid protocol is https, default valid hosts are *.'));
+      error.should.deepEqual(
+        new Error(
+          'Invalid source prop. <CacheableImage> props.source.uri should be a web accessible url with a valid protocol and host. NOTE: Default valid protocol is https, default valid hosts are *.'
+        )
+      );
     }
 
     // Verify source uri prop only accepts web accessible urls from whitelist if whitelist set.
 
     const CacheableImageWithOpts = imageCacheHoc(Image, {
-      fileHostWhitelist: [ 'i.redd.it' ]
+      fileHostWhitelist: ['i.redd.it'],
     });
 
     try {
-
-      const cacheableImageWithOpts = new CacheableImageWithOpts({ // eslint-disable-line no-unused-vars
+      // eslint-disable-next-line no-unused-vars
+      const cacheableImageWithOpts = new CacheableImageWithOpts({
         source: {
-          uri: 'https://www.google.com/logos/doodles/2017/day-of-the-dead-2017-6241959625621504-l.png'
-        }
+          uri:
+            'https://www.google.com/logos/doodles/2017/day-of-the-dead-2017-6241959625621504-l.png',
+        },
       });
 
       throw new Error('Invalid source uri prop was accepted.');
     } catch (error) {
-      error.should.deepEqual(new Error('Invalid source prop. <CacheableImage> props.source.uri should be a web accessible url with a valid protocol and host. NOTE: Default valid protocol is https, default valid hosts are *.'));
+      error.should.deepEqual(
+        new Error(
+          'Invalid source prop. <CacheableImage> props.source.uri should be a web accessible url with a valid protocol and host. NOTE: Default valid protocol is https, default valid hosts are *.'
+        )
+      );
     }
 
     // Verify source uri prop only accepts web accessible urls from correct protocols if protocol list set.
 
     const CacheableImageWithProtocolOpts = imageCacheHoc(Image, {
-      validProtocols: [ 'http' ]
+      validProtocols: ['http'],
     });
 
     try {
-
-      const cacheableImageWithProtocolOpts = new CacheableImageWithProtocolOpts({ // eslint-disable-line no-unused-vars
+      // eslint-disable-next-line no-unused-vars
+      const cacheableImageWithProtocolOpts = new CacheableImageWithProtocolOpts({
         source: {
-          uri: 'https://www.google.com/logos/doodles/2017/day-of-the-dead-2017-6241959625621504-l.png'
-        }
+          uri:
+            'https://www.google.com/logos/doodles/2017/day-of-the-dead-2017-6241959625621504-l.png',
+        },
       });
 
       throw new Error('Invalid source uri prop was accepted.');
     } catch (error) {
-      error.should.deepEqual(new Error('Invalid source prop. <CacheableImage> props.source.uri should be a web accessible url with a valid protocol and host. NOTE: Default valid protocol is https, default valid hosts are *.'));
+      error.should.deepEqual(
+        new Error(
+          'Invalid source prop. <CacheableImage> props.source.uri should be a web accessible url with a valid protocol and host. NOTE: Default valid protocol is https, default valid hosts are *.'
+        )
+      );
     }
-
   });
 
   it('Verify component is actually still mounted before calling setState() in componentDidMount().', async () => {
-
     // Set up mocks
     const FileSystem = require('../lib/FileSystem').default;
     FileSystem.prototype.getLocalFilePathFromUrl = jest.fn();
-    FileSystem.prototype.getLocalFilePathFromUrl.mockReturnValue(new Promise((resolve) => {
-      setTimeout(() => {
-        resolve(mockData.basePath + '/react-native-image-cache-hoc/permanent/cd7d2199cd8e088cdfd9c99fc6359666adc36289.png');
-      }, 1000); // Mock 1 second delay for this async function to complete.
-    }));
+    FileSystem.prototype.getLocalFilePathFromUrl.mockReturnValue(
+      new Promise((resolve) => {
+        setTimeout(() => {
+          resolve(
+            mockData.basePath +
+              '/react-native-image-cache-hoc/permanent/cd7d2199cd8e088cdfd9c99fc6359666adc36289.png'
+          );
+        }, 1000); // Mock 1 second delay for this async function to complete.
+      })
+    );
 
     const CacheableImage = imageCacheHoc(Image);
     const cacheableImage = new CacheableImage(mockData.mockCacheableImageProps);
@@ -292,20 +286,21 @@ describe('CacheableImage', function() {
     });
 
     // Ensure that setState() was not called on unmounted component.
-    cacheableImage.setState.should.not.be.called();
-
+    cacheableImage.setState.should.have.callCount(1);
+    cacheableImage.setState.should.be.calledWithExactly({ remoteFilePath: mockData.mockCacheableImageProps.source.uri });
   });
 
   it('#_loadImage should warn developer on error getting local file path.', () => {
-
     const CacheableImage = imageCacheHoc(Image);
 
-    const imageUrl = 'https://img.wennermedia.com/5333a62d-07db-432a-92e2-198cafa38a14-326adb1a-d8ed-4a5d-b37e-5c88883e1989.png';
+    const imageUrl =
+      'https://img.wennermedia.com/5333a62d-07db-432a-92e2-198cafa38a14-326adb1a-d8ed-4a5d-b37e-5c88883e1989.png';
 
-    const cacheableImage = new CacheableImage({ // eslint-disable-line no-unused-vars
+    const cacheableImage = new CacheableImage({
+      // eslint-disable-line no-unused-vars
       source: {
-        uri: imageUrl
-      }
+        uri: imageUrl,
+      },
     });
 
     const testError = new Error('Test error');
@@ -325,29 +320,28 @@ describe('CacheableImage', function() {
 
     // Re-apply console.warn
     console.warn = consoleWarnCache; // eslint-disable-line no-console
-
   });
 
   it('componentWillReceiveProps should not throw any uncaught errors.', () => {
-
     const CacheableImage = imageCacheHoc(Image);
 
-    const cacheableImage = new CacheableImage({ // eslint-disable-line no-unused-vars
+    const cacheableImage = new CacheableImage({
+      // eslint-disable-line no-unused-vars
       source: {
-        uri: 'https://img.wennermedia.com/5333a62d-07db-432a-92e2-198cafa38a14-326adb1a-d8ed-4a5d-b37e-5c88883e1989.png'
-      }
+        uri:
+          'https://img.wennermedia.com/5333a62d-07db-432a-92e2-198cafa38a14-326adb1a-d8ed-4a5d-b37e-5c88883e1989.png',
+      },
     });
 
-    cacheableImage.componentWillReceiveProps({ // eslint-disable-line no-unused-vars
+    cacheableImage.componentWillReceiveProps({
+      // eslint-disable-line no-unused-vars
       source: {
-        uri: 'https://img.wennermedia.com/wallpaper1-39bd413b-cb85-4af0-9f33-3507f272e562.jpg'
-      }
+        uri: 'https://img.wennermedia.com/wallpaper1-39bd413b-cb85-4af0-9f33-3507f272e562.jpg',
+      },
     });
-
   });
 
   it('#render with valid props does not throw an error.', () => {
-
     const CacheableImage = imageCacheHoc(Image);
 
     const cacheableImage = new CacheableImage(mockData.mockCacheableImageProps);
@@ -357,7 +351,5 @@ describe('CacheableImage', function() {
     cacheableImage.state.localFilePath = './test.jpg';
 
     cacheableImage.render();
-
   });
-
 });
