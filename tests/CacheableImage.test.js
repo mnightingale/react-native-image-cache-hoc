@@ -328,23 +328,39 @@ describe('CacheableImage', function () {
     console.warn = consoleWarnCache; // eslint-disable-line no-console
   });
 
-  it('componentWillReceiveProps should not throw any uncaught errors.', () => {
+  it('componentDidUpdate should not throw any uncaught errors.', (done) => {
+    RNFetchBlob.fetch
+      .mockResolvedValueOnce({
+        path: () => {
+          return 'A.jpg';
+        },
+      })
+      .mockResolvedValueOnce({
+        path: () => {
+          return 'B.jpg';
+        },
+      });
+
     const CacheableImage = imageCacheHoc(Image);
 
-    const cacheableImage = new CacheableImage({
-      // eslint-disable-line no-unused-vars
-      source: {
-        uri:
-          'https://img.wennermedia.com/5333a62d-07db-432a-92e2-198cafa38a14-326adb1a-d8ed-4a5d-b37e-5c88883e1989.png',
-      },
-    });
+    const wrapper = shallow(
+      <CacheableImage {...mockData.mockCacheableImageProps} />
+    );
 
-    cacheableImage.componentWillReceiveProps({
-      // eslint-disable-line no-unused-vars
-      source: {
-        uri:
-          'https://img.wennermedia.com/wallpaper1-39bd413b-cb85-4af0-9f33-3507f272e562.jpg',
-      },
+    setImmediate(() => {
+      expect(wrapper.prop('source')).toStrictEqual({
+        uri: 'A.jpg',
+      });
+
+      wrapper.setProps({ source: { uri: 'https://example.com/B.jpg' } });
+
+      setImmediate(() => {
+        expect(wrapper.prop('source')).toStrictEqual({
+          uri: 'B.jpg',
+        });
+
+        done();
+      });
     });
   });
 

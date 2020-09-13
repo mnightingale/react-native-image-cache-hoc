@@ -191,12 +191,12 @@ export default function imageCacheHoc(Image, options = {}) {
      * Enables caching logic to work if component source prop is updated (that is, the image url changes without mounting a new component).
      * See: https://github.com/billmalarky/react-native-image-cache-hoc/pull/15
      *
-     * @param nextProps {Object} - Props that will be passed to component.
+     * @param prevProps {Object} - Previous props.
      */
-    async componentWillReceiveProps(nextProps) {
+    async componentDidUpdate(prevProps) {
       // Set urls from source prop data
-      const url = traverse(this.props).get(['source', 'uri']);
-      const nextUrl = traverse(nextProps).get(['source', 'uri']);
+      const url = traverse(prevProps).get(['source', 'uri']);
+      const nextUrl = traverse(this.props).get(['source', 'uri']);
 
       // Do nothing if url has not changed.
       if (url === nextUrl) return;
