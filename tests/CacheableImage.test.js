@@ -8,6 +8,7 @@ import imageCacheHoc from '../src/imageCacheHoc';
 import { Image } from 'react-native';
 import sinon from 'sinon';
 import 'should-sinon';
+import RNFetchBlob from 'rn-fetch-blob';
 
 describe('CacheableImage', function () {
   it('HOC options validation should work as expected.', () => {
@@ -95,14 +96,11 @@ describe('CacheableImage', function () {
   });
 
   it('#cacheFile static method should work as expected for cache dir files.', () => {
-    // RNFetchBlob Mocks
-    const RNFetchBlob = require('rn-fetch-blob');
-
     // Mock that file does not exist on local fs.
-    RNFetchBlob.fs.exists.mockReturnValue(false);
+    RNFetchBlob.fs.exists.mockResolvedValue(false);
 
     // Mock fetch result
-    RNFetchBlob.fetch.mockReturnValue({
+    RNFetchBlob.fetch.mockResolvedValue({
       path: () => {
         return '/this/is/path/to/file.jpg';
       },
@@ -122,14 +120,11 @@ describe('CacheableImage', function () {
   });
 
   it('#cacheFile static method should work as expected for permanent dir files.', () => {
-    // RNFetchBlob Mocks
-    const RNFetchBlob = require('rn-fetch-blob');
-
     // Mock that file does not exist on local fs.
-    RNFetchBlob.fs.exists.mockReturnValue(false);
+    RNFetchBlob.fs.exists.mockResolvedValue(false);
 
     // Mock fetch result
-    RNFetchBlob.fetch.mockReturnValue({
+    RNFetchBlob.fetch.mockResolvedValue({
       path: () => {
         return '/this/is/path/to/file.jpg';
       },
@@ -150,11 +145,8 @@ describe('CacheableImage', function () {
   });
 
   it('#flush static method should work as expected.', () => {
-    // RNFetchBlob Mocks
-    const RNFetchBlob = require('rn-fetch-blob');
-
     // Mock unlink to always be true.
-    RNFetchBlob.fs.unlink.mockReturnValue(true);
+    RNFetchBlob.fs.unlink.mockResolvedValue(true);
 
     const CacheableImage = imageCacheHoc(Image);
 
@@ -354,7 +346,7 @@ describe('CacheableImage', function () {
     });
   });
 
-  it('#render with valid props does not throw an error.', () => {
+  it('#render with valid props does not throw an error.', async () => {
     const CacheableImage = imageCacheHoc(Image);
 
     const cacheableImage = new CacheableImage(mockData.mockCacheableImageProps);
@@ -364,5 +356,7 @@ describe('CacheableImage', function () {
     cacheableImage.state.localFilePath = './test.jpg';
 
     cacheableImage.render();
+
+    await new Promise((r) => setTimeout(r, 100)); // Hacky wait for lifecycle functions to complete
   });
 });

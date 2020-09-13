@@ -22,6 +22,11 @@ exports[`CacheableImage renders correctly 1`] = `
     Test CacheableImage Component
   </Text>
   <Image
+    source={
+      Object {
+        "uri": "/this/is/path/to/file.jpg",
+      }
+    }
     style={
       Object {
         "height": 204,
@@ -86,6 +91,26 @@ exports[`CacheableImage renders correctly with placeholder prop set 1`] = `
   >
     Test CacheableImage Component
   </Text>
-  <Image />
+  <Image
+    placeholder={
+      Object {
+        "component": [Function],
+        "props": Object {
+          "style": undefined,
+        },
+      }
+    }
+    source={
+      Object {
+        "uri": "/this/is/path/to/file.jpg",
+      }
+    }
+    style={
+      Object {
+        "height": 204,
+        "width": 150,
+      }
+    }
+  />
 </View>
 `;

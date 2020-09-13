@@ -6,6 +6,7 @@ import should from 'should'; // eslint-disable-line no-unused-vars
 import FileSystemFactory, { FileSystem } from '../src/FileSystem';
 import pathLib from 'path';
 import { mockData } from './mockData';
+import RNFetchBlob from 'rn-fetch-blob';
 
 describe('FileSystem', function () {
   // Test static class properties and methods
@@ -69,7 +70,6 @@ describe('FileSystem', function () {
   });
 
   it('#exists mocked as true.', () => {
-    const RNFetchBlob = require('rn-fetch-blob');
     RNFetchBlob.fs.exists.mockReturnValue(true);
 
     const fileSystem = FileSystemFactory();
@@ -128,17 +128,15 @@ describe('FileSystem', function () {
     fetch = jest.fn(); // eslint-disable-line no-global-assign
 
     // Test PNG
-    fetch.mockReturnValueOnce(
-      Promise.resolve({
-        headers: {
-          get: (headerName) => {
-            headerName.should.equals('content-type');
+    fetch.mockResolvedValueOnce({
+      headers: {
+        get: (headerName) => {
+          headerName.should.equals('content-type');
 
-            return 'image/png';
-          },
+          return 'image/png';
         },
-      })
-    );
+      },
+    });
 
     const pngFilename = await fileSystem.getFileNameFromUrl(
       'https://cdn2.hubspot.net/hub/42284/file-14233687-jpg/images/test_in_red'
@@ -146,17 +144,15 @@ describe('FileSystem', function () {
     pngFilename.should.equal('831eb245a3d9032cdce450f8760d2b8ddb442a3d.png');
 
     // Test JPG
-    fetch.mockReturnValueOnce(
-      Promise.resolve({
-        headers: {
-          get: (headerName) => {
-            headerName.should.equals('content-type');
+    fetch.mockResolvedValueOnce({
+      headers: {
+        get: (headerName) => {
+          headerName.should.equals('content-type');
 
-            return 'image/jpeg';
-          },
+          return 'image/jpeg';
         },
-      })
-    );
+      },
+    });
 
     const jpgFilename = await fileSystem.getFileNameFromUrl(
       'https://cdn2.hubspot.net/hub/42284/file-14233687-jpg/images/test_in_red'
@@ -164,17 +160,15 @@ describe('FileSystem', function () {
     jpgFilename.should.equal('831eb245a3d9032cdce450f8760d2b8ddb442a3d.jpg');
 
     // Test GIF
-    fetch.mockReturnValueOnce(
-      Promise.resolve({
-        headers: {
-          get: (headerName) => {
-            headerName.should.equals('content-type');
+    fetch.mockResolvedValueOnce({
+      headers: {
+        get: (headerName) => {
+          headerName.should.equals('content-type');
 
-            return 'image/gif';
-          },
+          return 'image/gif';
         },
-      })
-    );
+      },
+    });
 
     const gifFilename = await fileSystem.getFileNameFromUrl(
       'https://cdn2.hubspot.net/hub/42284/file-14233687-jpg/images/test_in_red'
@@ -182,17 +176,15 @@ describe('FileSystem', function () {
     gifFilename.should.equal('831eb245a3d9032cdce450f8760d2b8ddb442a3d.gif');
 
     // Test BMP
-    fetch.mockReturnValueOnce(
-      Promise.resolve({
-        headers: {
-          get: (headerName) => {
-            headerName.should.equals('content-type');
+    fetch.mockResolvedValueOnce({
+      headers: {
+        get: (headerName) => {
+          headerName.should.equals('content-type');
 
-            return 'image/bmp';
-          },
+          return 'image/bmp';
         },
-      })
-    );
+      },
+    });
 
     const bmpFilename = await fileSystem.getFileNameFromUrl(
       'https://cdn2.hubspot.net/hub/42284/file-14233687-jpg/images/test_in_red'
@@ -201,7 +193,6 @@ describe('FileSystem', function () {
   });
 
   it('#getLocalFilePathFromUrl should return local filepath if it exists on local fs in permanent dir.', () => {
-    const RNFetchBlob = require('rn-fetch-blob');
     RNFetchBlob.fs.exists
       .mockReturnValueOnce(true) // mock exist in local permanent dir
       .mockReturnValue(true);
@@ -221,7 +212,6 @@ describe('FileSystem', function () {
   });
 
   it('#getLocalFilePathFromUrl should return local filepath if it exists on local fs in cache dir.', () => {
-    const RNFetchBlob = require('rn-fetch-blob');
     RNFetchBlob.fs.exists
       .mockReturnValueOnce(false) // mock not exist in local permanent dir
       .mockReturnValueOnce(true) // mock exist in local cache dir
@@ -242,7 +232,6 @@ describe('FileSystem', function () {
   });
 
   it('#getLocalFilePathFromUrl should download file and write to disk (default to cache dir) if it does not exist on local fs.', () => {
-    const RNFetchBlob = require('rn-fetch-blob');
     RNFetchBlob.fs.exists
       .mockReturnValueOnce(false) // mock not exist in local permanent dir
       .mockReturnValueOnce(false) // mock not exist in local cache dir
@@ -291,7 +280,6 @@ describe('FileSystem', function () {
   it('#fetchFile clobber safeguard should work.', () => {
     const fileSystem = FileSystemFactory();
 
-    const RNFetchBlob = require('rn-fetch-blob');
     RNFetchBlob.fetch.mockReturnValue({
       path: () => {
         return '/this/is/path/to/file.jpg';
@@ -320,7 +308,6 @@ describe('FileSystem', function () {
   it('#fetchFile prune logic should not be called on permanent writes.', () => {
     const fileSystem = FileSystemFactory();
 
-    const RNFetchBlob = require('rn-fetch-blob');
     RNFetchBlob.fetch.mockReturnValue({
       path: () => {
         return '/this/is/path/to/file.jpg';
@@ -350,7 +337,6 @@ describe('FileSystem', function () {
   it('#fetchFile prune logic should be called on cache writes.', () => {
     const fileSystem = FileSystemFactory();
 
-    const RNFetchBlob = require('rn-fetch-blob');
     RNFetchBlob.fetch.mockReturnValue({
       path: () => {
         return '/this/is/path/to/file.jpg';
@@ -380,7 +366,6 @@ describe('FileSystem', function () {
   it('#fetchFile should work as expected.', () => {
     const fileSystem = FileSystemFactory();
 
-    const RNFetchBlob = require('rn-fetch-blob');
     RNFetchBlob.fetch.mockReturnValue({
       path: () => {
         return '/this/is/path/to/file.jpg';
@@ -433,7 +418,6 @@ describe('FileSystem', function () {
 
   it('#unlink should work as expected for valid paths.', () => {
     // RNFetchBlob Mocks
-    const RNFetchBlob = require('rn-fetch-blob');
 
     // Mock unlink to be true.
     RNFetchBlob.fs.unlink.mockReturnValueOnce(true);

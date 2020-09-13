@@ -8,22 +8,22 @@ import 'react-native';
 import imageCacheHoc from '../src/imageCacheHoc';
 import { StyleSheet, View, Text, Image } from 'react-native';
 import { mockData } from './mockData';
+import RNFetchBlob from 'rn-fetch-blob';
 
 // Note: test renderer must be required after react-native.
 import renderer from 'react-test-renderer';
 
 // Ensure component can mount successfully.
 describe('CacheableImage', function () {
-  it('renders correctly', () => {
+  it('renders correctly', async () => {
     //Mock values for local/remote file request logic.
-    const RNFetchBlob = require('rn-fetch-blob');
     RNFetchBlob.fs.exists
-      .mockReturnValueOnce(false) // mock not exist in local permanent dir
-      .mockReturnValueOnce(false) // mock not exist in local cache dir
-      .mockReturnValueOnce(false) // mock does not exist to get past clobber
-      .mockReturnValue(true);
+      .mockResolvedValueOnce(false) // mock not exist in local permanent dir
+      .mockResolvedValueOnce(false) // mock not exist in local cache dir
+      .mockResolvedValueOnce(false) // mock does not exist to get past clobber
+      .mockResolvedValue(true);
 
-    RNFetchBlob.fetch.mockReturnValue({
+    RNFetchBlob.fetch.mockResolvedValue({
       path: () => {
         return '/this/is/path/to/file.jpg';
       },
@@ -58,6 +58,7 @@ describe('CacheableImage', function () {
         />
       </View>
     );
+    await new Promise((r) => setTimeout(r, 100)); // Hacky wait for lifecycle functions to complete
     expect(tree).toMatchSnapshot(); //If UI changes, this snapshot must be updated. See comment below.
 
     /**
@@ -67,16 +68,15 @@ describe('CacheableImage', function () {
      */
   });
 
-  it('renders correctly with placeholder prop set', () => {
+  it('renders correctly with placeholder prop set', async () => {
     //Mock values for local/remote file request logic.
-    const RNFetchBlob = require('rn-fetch-blob');
     RNFetchBlob.fs.exists
-      .mockReturnValueOnce(false) // mock not exist in local permanent dir
-      .mockReturnValueOnce(false) // mock not exist in local cache dir
-      .mockReturnValueOnce(false) // mock does not exist to get past clobber
-      .mockReturnValue(true);
+      .mockResolvedValueOnce(false) // mock not exist in local permanent dir
+      .mockResolvedValueOnce(false) // mock not exist in local cache dir
+      .mockResolvedValueOnce(false) // mock does not exist to get past clobber
+      .mockResolvedValue(true);
 
-    RNFetchBlob.fetch.mockReturnValue({
+    RNFetchBlob.fetch.mockResolvedValue({
       path: () => {
         return '/this/is/path/to/file.jpg';
       },
@@ -125,6 +125,7 @@ describe('CacheableImage', function () {
         />
       </View>
     );
+    await new Promise((r) => setTimeout(r, 100)); // Hacky wait for lifecycle functions to complete
     expect(tree).toMatchSnapshot(); //If UI changes, this snapshot must be updated. See comment below.
 
     /**
@@ -134,16 +135,15 @@ describe('CacheableImage', function () {
      */
   });
 
-  it('renders correctly with placeholder option set', () => {
+  it('renders correctly with placeholder option set', async () => {
     //Mock values for local/remote file request logic.
-    const RNFetchBlob = require('rn-fetch-blob');
     RNFetchBlob.fs.exists
-      .mockReturnValueOnce(false) // mock not exist in local permanent dir
-      .mockReturnValueOnce(false) // mock not exist in local cache dir
-      .mockReturnValueOnce(false) // mock does not exist to get past clobber
-      .mockReturnValue(true);
+      .mockResolvedValueOnce(false) // mock not exist in local permanent dir
+      .mockResolvedValueOnce(false) // mock not exist in local cache dir
+      .mockResolvedValueOnce(false) // mock does not exist to get past clobber
+      .mockResolvedValue(true);
 
-    RNFetchBlob.fetch.mockReturnValue({
+    RNFetchBlob.fetch.mockResolvedValue({
       path: () => {
         return '/this/is/path/to/file.jpg';
       },
@@ -194,6 +194,7 @@ describe('CacheableImage', function () {
       </View>
     );
     expect(tree).toMatchSnapshot(); //If UI changes, this snapshot must be updated. See comment below.
+    await new Promise((r) => setTimeout(r, 100)); // Hacky wait for lifecycle functions to complete, this is after the snapshot check because we want to see the first render
 
     /**
      The next time you run the tests, the rendered output will be compared to the previously created snapshot.
