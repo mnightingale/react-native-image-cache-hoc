@@ -1,3 +1,4 @@
+/* global jest */
 const { mockData } = require('../mockData');
 
 module.exports = {
