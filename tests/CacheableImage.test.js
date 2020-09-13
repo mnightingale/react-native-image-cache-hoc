@@ -9,6 +9,8 @@ import { Image } from 'react-native';
 import sinon from 'sinon';
 import 'should-sinon';
 import RNFetchBlob from 'rn-fetch-blob';
+import { shallow } from 'enzyme';
+import React from 'react';
 
 describe('CacheableImage', function () {
   it('HOC options validation should work as expected.', () => {
@@ -346,17 +348,25 @@ describe('CacheableImage', function () {
     });
   });
 
-  it('#render with valid props does not throw an error.', async () => {
+  it('#render with valid props does not throw an error.', (done) => {
     const CacheableImage = imageCacheHoc(Image);
 
-    const cacheableImage = new CacheableImage(mockData.mockCacheableImageProps);
+    const wrapper = shallow(
+      <CacheableImage {...mockData.mockCacheableImageProps} />
+    );
 
-    cacheableImage.render();
+    setImmediate(() => {
+      expect(wrapper.prop('source')).toStrictEqual({
+        uri: '/this/is/path/to/file.jpg',
+      });
 
-    cacheableImage.state.localFilePath = './test.jpg';
+      wrapper.setState({ localFilePath: './test.jpg' });
 
-    cacheableImage.render();
+      expect(wrapper.prop('source')).toStrictEqual({
+        uri: './test.jpg',
+      });
 
-    await new Promise((r) => setTimeout(r, 100)); // Hacky wait for lifecycle functions to complete
+      done();
+    });
   });
 });
