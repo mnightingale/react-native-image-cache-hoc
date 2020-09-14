@@ -1,5 +1,5 @@
 // Define globals for eslint.
-/* global describe it jest */
+/* global describe it */
 
 // Load dependencies
 import should from 'should'; // eslint-disable-line no-unused-vars
@@ -121,75 +121,35 @@ describe('FileSystem', function () {
     pngFilenameTwo.should.equal('09091b8880ddb982968a0fe28abed5034f9a43b8.png');
   });
 
-  it('#getFileNameFromUrl should handle PNG/JPG/GIF/BMP urls without file extensions by using content-type header.', async () => {
+  it('#getFileNameFromUrl should handle PNG/JPG/GIF/BMP urls and urls without file extensions.', async () => {
     const fileSystem = FileSystemFactory();
 
-    // Mock fetch
-    fetch = jest.fn(); // eslint-disable-line no-global-assign
-
-    // Test PNG
-    fetch.mockResolvedValueOnce({
-      headers: {
-        get: (headerName) => {
-          headerName.should.equals('content-type');
-
-          return 'image/png';
-        },
-      },
-    });
-
     const pngFilename = await fileSystem.getFileNameFromUrl(
-      'https://cdn2.hubspot.net/hub/42284/file-14233687-jpg/images/test_in_red'
+      'https://cdn2.hubspot.net/hub/42284/file-14233687-jpg/images/test_in_red.png'
     );
-    pngFilename.should.equal('831eb245a3d9032cdce450f8760d2b8ddb442a3d.png');
-
-    // Test JPG
-    fetch.mockResolvedValueOnce({
-      headers: {
-        get: (headerName) => {
-          headerName.should.equals('content-type');
-
-          return 'image/jpeg';
-        },
-      },
-    });
+    pngFilename.should.equal('b89a6739cdfd993a9b5d43b2ff4aa216e17c63ae.png');
 
     const jpgFilename = await fileSystem.getFileNameFromUrl(
-      'https://cdn2.hubspot.net/hub/42284/file-14233687-jpg/images/test_in_red'
+      'https://cdn2.hubspot.net/hub/42284/file-14233687-jpg/images/test_in_red.jpg'
     );
-    jpgFilename.should.equal('831eb245a3d9032cdce450f8760d2b8ddb442a3d.jpg');
-
-    // Test GIF
-    fetch.mockResolvedValueOnce({
-      headers: {
-        get: (headerName) => {
-          headerName.should.equals('content-type');
-
-          return 'image/gif';
-        },
-      },
-    });
+    jpgFilename.should.equal('6adf4569ecc3bf8c378bb4d47b1995cd85c5a13c.jpg');
 
     const gifFilename = await fileSystem.getFileNameFromUrl(
-      'https://cdn2.hubspot.net/hub/42284/file-14233687-jpg/images/test_in_red'
+      'https://cdn2.hubspot.net/hub/42284/file-14233687-jpg/images/test_in_red.gif'
     );
-    gifFilename.should.equal('831eb245a3d9032cdce450f8760d2b8ddb442a3d.gif');
-
-    // Test BMP
-    fetch.mockResolvedValueOnce({
-      headers: {
-        get: (headerName) => {
-          headerName.should.equals('content-type');
-
-          return 'image/bmp';
-        },
-      },
-    });
+    gifFilename.should.equal('f0bc1d93ca75e6e355188391e3d0f1aab6d30bad.gif');
 
     const bmpFilename = await fileSystem.getFileNameFromUrl(
+      'https://cdn2.hubspot.net/hub/42284/file-14233687-jpg/images/test_in_red.bmp'
+    );
+    bmpFilename.should.equal('ca15f1856605a6a5ca1d426a12f91efdc061b31c.bmp');
+
+    const unknownFilename = await fileSystem.getFileNameFromUrl(
       'https://cdn2.hubspot.net/hub/42284/file-14233687-jpg/images/test_in_red'
     );
-    bmpFilename.should.equal('831eb245a3d9032cdce450f8760d2b8ddb442a3d.bmp');
+    unknownFilename.should.equal(
+      '831eb245a3d9032cdce450f8760d2b8ddb442a3d.bin'
+    );
   });
 
   it('#getLocalFilePathFromUrl should return local filepath if it exists on local fs in permanent dir.', () => {

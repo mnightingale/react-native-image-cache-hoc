@@ -143,83 +143,10 @@ export class FileSystem {
     const urlParts = new URL(url);
     const urlExt = urlParts.pathname.split('.').pop();
 
-    let extension = null;
-    switch (urlExt) {
-      case 'png':
-      case 'PNG':
-        extension = 'png';
-        break;
-      case 'gif':
-      case 'GIF':
-        extension = 'gif';
-        break;
-      case 'jpg':
-      case 'JPG':
-      case 'jpeg':
-      case 'JPEG':
-        extension = 'jpg';
-        break;
-      case 'BMP':
-      case 'bmp':
-        extension = 'bmp';
-        break;
-      default:
-        extension = await this.getExtensionFromContentTypeHeader(url);
-    }
-
-    if (!extension) {
-      throw new Error('Unable to determine remote image filetype.');
-    }
+    // react-native enforces Image src to default to a file extension of png
+    let extension = urlExt === urlParts.pathname ? 'bin' : urlExt;
 
     return sha1(url).toString() + '.' + extension;
-  }
-
-  /**
-   *
-   * Used to determine appropriate file extension for a remote file that doesn't include
-   * an extension in the url. This method will attempt to determine extension using server
-   * "Content-Type" response header.
-   *
-   * @param url {String} - An absolute url.
-   * @returns extension {string} - A file extension appropriate for remote file.
-   */
-  async getExtensionFromContentTypeHeader(url) {
-    let extension = null;
-    let contentType = null;
-
-    // Request "Content-type" header from server.
-    try {
-      const response = await fetch(url, {
-        method: 'HEAD',
-      });
-
-      if (response.headers.get('content-type')) {
-        const rawContentType = response.headers.get('content-type'); // headers are case-insensitive, fetch standard is all lower case.
-        contentType = rawContentType.toLowerCase();
-      }
-    } catch (error) {
-      console.warn(error); // eslint-disable-line no-console
-    }
-
-    // Use content type header to determine extension.
-    switch (contentType) {
-      case 'image/png':
-        extension = 'png';
-        break;
-      case 'image/gif':
-        extension = 'gif';
-        break;
-      case 'image/jpeg':
-        extension = 'jpg';
-        break;
-      case 'image/bmp':
-        extension = 'bmp';
-        break;
-      default:
-        extension = null;
-    }
-
-    return extension;
   }
 
   /**
