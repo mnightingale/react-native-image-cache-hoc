@@ -9,9 +9,22 @@
 
 import { Platform } from 'react-native';
 import pathLib from 'path';
-import RNFetchBlob from 'rn-fetch-blob';
+import RNFS from 'react-native-fs';
 import sha1 from 'crypto-js/sha1';
 import URL from 'url-parse';
+
+/**
+ * Resolves if 'unlink' resolves or if the file doesn't exist.
+ *
+ * @param {string} filename
+ */
+const RNFSUnlinkIfExists = (filename) =>
+  RNFS.exists(filename).then((exists) => {
+    if (exists) {
+      return RNFS.unlink(filename);
+    }
+    return Promise.resolve();
+  });
 
 export class FileSystem {
   /**
@@ -85,8 +98,7 @@ export class FileSystem {
    * @private
    */
   _setBaseFilePath(fileDirName = null) {
-    let baseFilePath =
-      this.os == 'ios' ? RNFetchBlob.fs.dirs.CacheDir : RNFetchBlob.fs.dirs.DocumentDir;
+    let baseFilePath = this.os == 'ios' ? RNFS.CachesDirectoryPath : RNFS.DocumentDirectoryPath;
     baseFilePath += '/' + fileDirName + '/';
     return baseFilePath;
   }
@@ -124,7 +136,7 @@ export class FileSystem {
    */
   exists(path) {
     this._validatePath(path);
-    return RNFetchBlob.fs.exists(pathLib.resolve(this.baseFilePath + path));
+    return RNFS.exists(pathLib.resolve(this.baseFilePath + path));
   }
 
   /**
@@ -192,7 +204,7 @@ export class FileSystem {
    */
   async fetchFile(url, permanent = false, fileName = null, clobber = false) {
     fileName = fileName || (await this.getFileNameFromUrl(url));
-    let path = this.baseFilePath + (permanent ? 'permanent' : 'cache') + '/' + fileName;
+    let path = this.baseFilePath + (permanent ? 'permanent/' : 'cache/') + fileName;
     this._validatePath(path, true);
 
     // Clobber logic
@@ -207,14 +219,22 @@ export class FileSystem {
     }
 
     // Hit network and download file to local disk.
-    let result = null;
     try {
-      result = await RNFetchBlob.config({
-        path: path,
-      }).fetch('GET', url);
+      const cacheDirExists = await this.exists(permanent ? 'permanent' : 'cache');
+      if (!cacheDirExists) {
+        await RNFS.mkdir(`${this.baseFilePath}${permanent ? 'permanent' : 'cache'}`);
+      }
+
+      const { promise } = RNFS.downloadFile({
+        fromUrl: url,
+        toFile: path,
+      });
+      const response = await promise;
+      if (response.statusCode !== 200) {
+        throw response;
+      }
     } catch (error) {
-      // File must be manually removed on download error https://github.com/wkh237/react-native-fetch-blob/issues/331
-      await RNFetchBlob.fs.unlink(path);
+      await RNFSUnlinkIfExists(path);
       return {
         path: null,
         fileName: pathLib.basename(path),
@@ -222,7 +242,7 @@ export class FileSystem {
     }
 
     return {
-      path: result.path(),
+      path,
       fileName: pathLib.basename(path),
     };
   }
@@ -240,15 +260,15 @@ export class FileSystem {
       return;
     }
 
-    // Get blobStatObjects.
-    let lstat = await RNFetchBlob.fs.lstat(this.baseFilePath + 'cache');
+    // Get directory contents
+    let dirContents = await RNFS.readDir(this.baseFilePath + 'cache');
 
-    // Sort blobStatObjects in order of oldest to newest file.
-    lstat.sort((a, b) => {
-      return a.lastModified - b.lastModified;
+    // Sort dirContents in order of oldest to newest file.
+    dirContents.sort((a, b) => {
+      return a.mtime - b.mtime;
     });
 
-    let currentCacheSize = lstat.reduce((cacheSize, blobStatObject) => {
+    let currentCacheSize = dirContents.reduce((cacheSize, blobStatObject) => {
       return cacheSize + parseInt(blobStatObject.size);
     }, 0);
 
@@ -258,16 +278,16 @@ export class FileSystem {
 
       // Keep deleting cached files so long as the current cache size is larger than the size required to trigger cache pruning, or until
       // all cache files have been evaluated.
-      while (overflowSize > 0 && lstat.length) {
-        let blobStatObject = lstat.shift();
+      while (overflowSize > 0 && dirContents.length) {
+        let contentFile = dirContents.shift();
 
         // Only prune unlocked files from cache
         if (
-          !FileSystem.cacheLock[blobStatObject.filename] &&
-          this._validatePath('cache/' + blobStatObject.filename)
+          !FileSystem.cacheLock[contentFile.name] &&
+          this._validatePath('cache/' + contentFile.name)
         ) {
-          overflowSize = overflowSize - parseInt(blobStatObject.size);
-          RNFetchBlob.fs.unlink(this.baseFilePath + 'cache/' + blobStatObject.filename);
+          overflowSize -= parseInt(contentFile.size);
+          RNFSUnlinkIfExists(this.baseFilePath + 'cache/' + contentFile.name);
         }
       }
     }
@@ -283,7 +303,7 @@ export class FileSystem {
     this._validatePath(path);
 
     try {
-      await RNFetchBlob.fs.unlink(pathLib.resolve(this.baseFilePath + path));
+      await RNFSUnlinkIfExists(pathLib.resolve(this.baseFilePath + path));
       return true;
     } catch (error) {
       return false;

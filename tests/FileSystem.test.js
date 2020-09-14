@@ -1,12 +1,12 @@
 // Define globals for eslint.
-/* global describe it */
+/* global expect describe it */
 
 // Load dependencies
 import should from 'should'; // eslint-disable-line no-unused-vars
 import FileSystemFactory, { FileSystem } from '../src/FileSystem';
 import pathLib from 'path';
 import { mockData } from './mockData';
-import RNFetchBlob from 'rn-fetch-blob';
+import RNFS from 'react-native-fs';
 
 describe('FileSystem', function () {
   // Test static class properties and methods
@@ -68,11 +68,11 @@ describe('FileSystem', function () {
   });
 
   it('#exists mocked as true.', () => {
-    RNFetchBlob.fs.exists.mockReturnValue(true);
+    RNFS.exists.mockResolvedValue(true);
 
     const fileSystem = FileSystemFactory();
 
-    fileSystem.exists('abitrary-file.jpg').should.be.true();
+    return expect(fileSystem.exists('abitrary-file.jpg')).resolves.toEqual(true);
   });
 
   it('#getFileNameFromUrl should create a sha1 filename from a PNG/JPG/GIF/BMP url.', async () => {
@@ -149,9 +149,7 @@ describe('FileSystem', function () {
   });
 
   it('#getLocalFilePathFromUrl should return local filepath if it exists on local fs in permanent dir.', () => {
-    RNFetchBlob.fs.exists
-      .mockReturnValueOnce(true) // mock exist in local permanent dir
-      .mockReturnValue(true);
+    RNFS.exists.mockReturnValue(true).mockReturnValueOnce(true); // mock exist in local permanent dir
 
     const fileSystem = FileSystemFactory();
 
@@ -168,7 +166,7 @@ describe('FileSystem', function () {
   });
 
   it('#getLocalFilePathFromUrl should return local filepath if it exists on local fs in cache dir.', () => {
-    RNFetchBlob.fs.exists
+    RNFS.exists
       .mockReturnValueOnce(false) // mock not exist in local permanent dir
       .mockReturnValueOnce(true) // mock exist in local cache dir
       .mockReturnValue(true);
@@ -188,16 +186,14 @@ describe('FileSystem', function () {
   });
 
   it('#getLocalFilePathFromUrl should download file and write to disk (default to cache dir) if it does not exist on local fs.', () => {
-    RNFetchBlob.fs.exists
-      .mockReturnValueOnce(false) // mock not exist in local permanent dir
-      .mockReturnValueOnce(false) // mock not exist in local cache dir
-      .mockReturnValueOnce(false) // mock does not exist to get past clobber
-      .mockReturnValue(true);
+    RNFS.exists
+      .mockResolvedValue(true)
+      .mockResolvedValueOnce(false) // mock not exist in local permanent dir
+      .mockResolvedValueOnce(false) // mock not exist in local cache dir
+      .mockResolvedValueOnce(false); // mock does not exist to get past clobber
 
-    RNFetchBlob.fetch.mockReturnValue({
-      path: () => {
-        return '/this/is/path/to/file.jpg';
-      },
+    RNFS.downloadFile.mockReturnValue({
+      promise: Promise.resolve({ statusCode: 200 }),
     });
 
     const fileSystem = FileSystemFactory();
@@ -207,7 +203,9 @@ describe('FileSystem', function () {
         'https://img.wennermedia.com/5333a62d-07db-432a-92e2-198cafa38a14-326adb1a-d8ed-4a5d-b37e-5c88883e1989.png'
       )
       .then((localFilePath) => {
-        localFilePath.should.equal('/this/is/path/to/file.jpg');
+        localFilePath.should.equal(
+          '/base/file/path/react-native-image-cache-hoc/cache/cd7d2199cd8e088cdfd9c99fc6359666adc36289.png'
+        );
       });
   });
 
@@ -232,10 +230,8 @@ describe('FileSystem', function () {
   it('#fetchFile clobber safeguard should work.', () => {
     const fileSystem = FileSystemFactory();
 
-    RNFetchBlob.fetch.mockReturnValue({
-      path: () => {
-        return '/this/is/path/to/file.jpg';
-      },
+    RNFS.downloadFile.mockReturnValue({
+      promise: Promise.resolve({ statusCode: 200 }),
     });
 
     // fileSystem.exists() is mocked to always return true, so error should always be thrown unless clobber is set to true.
@@ -260,10 +256,8 @@ describe('FileSystem', function () {
   it('#fetchFile prune logic should not be called on permanent writes.', () => {
     const fileSystem = FileSystemFactory();
 
-    RNFetchBlob.fetch.mockReturnValue({
-      path: () => {
-        return '/this/is/path/to/file.jpg';
-      },
+    RNFS.downloadFile.mockReturnValue({
+      promise: Promise.resolve({ statusCode: 200 }),
     });
 
     let pruneCacheHit = false;
@@ -289,10 +283,8 @@ describe('FileSystem', function () {
   it('#fetchFile prune logic should be called on cache writes.', () => {
     const fileSystem = FileSystemFactory();
 
-    RNFetchBlob.fetch.mockReturnValue({
-      path: () => {
-        return '/this/is/path/to/file.jpg';
-      },
+    RNFS.downloadFile.mockReturnValue({
+      promise: Promise.resolve({ statusCode: 200 }),
     });
 
     let pruneCacheHit = false;
@@ -318,10 +310,8 @@ describe('FileSystem', function () {
   it('#fetchFile should work as expected.', () => {
     const fileSystem = FileSystemFactory();
 
-    RNFetchBlob.fetch.mockReturnValue({
-      path: () => {
-        return '/this/is/path/to/file.jpg';
-      },
+    RNFS.downloadFile.mockReturnValue({
+      promise: Promise.resolve({ statusCode: 200 }),
     });
 
     // Mock fileSystem.pruneCache().
@@ -337,7 +327,8 @@ describe('FileSystem', function () {
       )
       .then((result) => {
         result.should.deepEqual({
-          path: '/this/is/path/to/file.jpg',
+          path:
+            '/base/file/path/react-native-image-cache-hoc/cache/cd7d2199cd8e088cdfd9c99fc6359666adc36289.png',
           fileName: 'cd7d2199cd8e088cdfd9c99fc6359666adc36289.png',
         });
       });
@@ -367,17 +358,14 @@ describe('FileSystem', function () {
   });
 
   it('#unlink should work as expected for valid paths.', () => {
-    // RNFetchBlob Mocks
-
     // Mock unlink to be true.
-    RNFetchBlob.fs.unlink.mockReturnValueOnce(true);
+    RNFS.exists.mockResolvedValueOnce(true);
+    RNFS.unlink.mockResolvedValueOnce(true);
 
     const fileSystem = FileSystemFactory();
 
     const validPath = '/permanent/valid.jpg';
 
-    return fileSystem.unlink(validPath).then((result) => {
-      result.should.be.true();
-    });
+    return expect(fileSystem.unlink(validPath)).resolves.toEqual(true);
   });
 });

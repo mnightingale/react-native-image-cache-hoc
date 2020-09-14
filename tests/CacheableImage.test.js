@@ -8,7 +8,7 @@ import imageCacheHoc from '../src/imageCacheHoc';
 import { Image } from 'react-native';
 import sinon from 'sinon';
 import 'should-sinon';
-import RNFetchBlob from 'rn-fetch-blob';
+import RNFS from 'react-native-fs';
 import { shallow } from 'enzyme';
 import React from 'react';
 
@@ -98,13 +98,12 @@ describe('CacheableImage', function () {
 
   it('#cacheFile static method should work as expected for cache dir files.', () => {
     // Mock that file does not exist on local fs.
-    RNFetchBlob.fs.exists.mockResolvedValue(false);
+    RNFS.exists.mockResolvedValue(false);
 
     // Mock fetch result
-    RNFetchBlob.fetch.mockResolvedValue({
-      path: () => {
-        return '/this/is/path/to/file.jpg';
-      },
+
+    RNFS.downloadFile.mockReturnValue({
+      promise: Promise.resolve({ statusCode: 200 }),
     });
 
     const CacheableImage = imageCacheHoc(Image);
@@ -113,20 +112,19 @@ describe('CacheableImage', function () {
       result.should.deepEqual({
         url: 'https://i.redd.it/rc29s4bz61uz.png',
         cacheType: 'cache',
-        localFilePath: '/this/is/path/to/file.jpg',
+        localFilePath:
+          '/base/file/path/react-native-image-cache-hoc/cache/d3b74e9fa8248a5805e2dcf17a8577acd28c089b.png',
       });
     });
   });
 
   it('#cacheFile static method should work as expected for permanent dir files.', () => {
     // Mock that file does not exist on local fs.
-    RNFetchBlob.fs.exists.mockResolvedValue(false);
+    RNFS.exists.mockResolvedValue(false);
 
     // Mock fetch result
-    RNFetchBlob.fetch.mockResolvedValue({
-      path: () => {
-        return '/this/is/path/to/file.jpg';
-      },
+    RNFS.downloadFile.mockReturnValue({
+      promise: Promise.resolve({ statusCode: 200 }),
     });
 
     const CacheableImage = imageCacheHoc(Image);
@@ -135,14 +133,15 @@ describe('CacheableImage', function () {
       result.should.deepEqual({
         url: 'https://i.redd.it/rc29s4bz61uz.png',
         cacheType: 'permanent',
-        localFilePath: '/this/is/path/to/file.jpg',
+        localFilePath:
+          '/base/file/path/react-native-image-cache-hoc/permanent/d3b74e9fa8248a5805e2dcf17a8577acd28c089b.png',
       });
     });
   });
 
   it('#flush static method should work as expected.', () => {
     // Mock unlink to always be true.
-    RNFetchBlob.fs.unlink.mockResolvedValue(true);
+    RNFS.unlink.mockResolvedValue(true);
 
     const CacheableImage = imageCacheHoc(Image);
 
@@ -319,16 +318,12 @@ describe('CacheableImage', function () {
   });
 
   it('componentDidUpdate should not throw any uncaught errors.', (done) => {
-    RNFetchBlob.fetch
-      .mockResolvedValueOnce({
-        path: () => {
-          return 'A.jpg';
-        },
+    RNFS.downloadFile
+      .mockReturnValueOnce({
+        promise: Promise.resolve({ statusCode: 200 }),
       })
-      .mockResolvedValueOnce({
-        path: () => {
-          return 'B.jpg';
-        },
+      .mockReturnValueOnce({
+        promise: Promise.resolve({ statusCode: 200 }),
       });
 
     const CacheableImage = imageCacheHoc(Image);
@@ -337,14 +332,16 @@ describe('CacheableImage', function () {
 
     setImmediate(() => {
       expect(wrapper.prop('source')).toStrictEqual({
-        uri: 'A.jpg',
+        uri:
+          '/base/file/path/react-native-image-cache-hoc/cache/d3b74e9fa8248a5805e2dcf17a8577acd28c089b.png',
       });
 
       wrapper.setProps({ source: { uri: 'https://example.com/B.jpg' } });
 
       setImmediate(() => {
         expect(wrapper.prop('source')).toStrictEqual({
-          uri: 'B.jpg',
+          uri:
+            '/base/file/path/react-native-image-cache-hoc/cache/a940ee9ea388fcea7628d9a64dfac6a698aa0228.jpg',
         });
 
         done();
@@ -359,7 +356,8 @@ describe('CacheableImage', function () {
 
     setImmediate(() => {
       expect(wrapper.prop('source')).toStrictEqual({
-        uri: '/this/is/path/to/file.jpg',
+        uri:
+          '/base/file/path/react-native-image-cache-hoc/cache/d3b74e9fa8248a5805e2dcf17a8577acd28c089b.png',
       });
 
       wrapper.setState({ localFilePath: './test.jpg' });

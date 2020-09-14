@@ -6,23 +6,21 @@ import React from 'react';
 import imageCacheHoc from '../src/imageCacheHoc';
 import { StyleSheet, Image } from 'react-native';
 import { mockData } from './mockData';
-import RNFetchBlob from 'rn-fetch-blob';
+import RNFS from 'react-native-fs';
 import { shallow } from 'enzyme';
 
 // Ensure component can mount successfully.
 describe('CacheableImage', function () {
   it('renders correctly 1', (done) => {
     //Mock values for local/remote file request logic.
-    RNFetchBlob.fs.exists
+    RNFS.exists
       .mockResolvedValueOnce(false) // mock not exist in local permanent dir
       .mockResolvedValueOnce(false) // mock not exist in local cache dir
       .mockResolvedValueOnce(false) // mock does not exist to get past clobber
       .mockResolvedValue(true);
 
-    RNFetchBlob.fetch.mockResolvedValue({
-      path: () => {
-        return '/this/is/path/to/file.jpg';
-      },
+    RNFS.downloadFile.mockReturnValue({
+      promise: Promise.resolve({ statusCode: 200 }),
     });
 
     const CacheableImage = imageCacheHoc(Image);
@@ -44,7 +42,8 @@ describe('CacheableImage', function () {
 
     setImmediate(() => {
       expect(wrapper.prop('source')).toStrictEqual({
-        uri: '/this/is/path/to/file.jpg',
+        uri:
+          '/base/file/path/react-native-image-cache-hoc/cache/d3b74e9fa8248a5805e2dcf17a8577acd28c089b.png',
       });
       done();
     });
@@ -52,16 +51,14 @@ describe('CacheableImage', function () {
 
   it('renders correctly with placeholder prop set', () => {
     //Mock values for local/remote file request logic.
-    RNFetchBlob.fs.exists
+    RNFS.exists
       .mockResolvedValueOnce(false) // mock not exist in local permanent dir
       .mockResolvedValueOnce(false) // mock not exist in local cache dir
       .mockResolvedValueOnce(false) // mock does not exist to get past clobber
       .mockResolvedValue(true);
 
-    RNFetchBlob.fetch.mockResolvedValue({
-      path: () => {
-        return '/this/is/path/to/file.jpg';
-      },
+    RNFS.downloadFile.mockReturnValue({
+      promise: Promise.resolve({ statusCode: 200 }),
     });
 
     const CacheableImage = imageCacheHoc(Image);
@@ -100,16 +97,14 @@ describe('CacheableImage', function () {
 
   it('renders correctly with placeholder option set', () => {
     //Mock values for local/remote file request logic.
-    RNFetchBlob.fs.exists
+    RNFS.exists
       .mockResolvedValueOnce(false) // mock not exist in local permanent dir
       .mockResolvedValueOnce(false) // mock not exist in local cache dir
       .mockResolvedValueOnce(false) // mock does not exist to get past clobber
       .mockResolvedValue(true);
 
-    RNFetchBlob.fetch.mockResolvedValue({
-      path: () => {
-        return '/this/is/path/to/file.jpg';
-      },
+    RNFS.downloadFile.mockReturnValue({
+      promise: Promise.resolve({ statusCode: 200 }),
     });
 
     const styles = StyleSheet.create({

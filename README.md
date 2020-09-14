@@ -25,15 +25,15 @@ Or
 $ yarn add react-native-image-cache-hoc
 ```
 
-Then, because this package has a depedency on [rn-fetch-blob](https://github.com/joltup/rn-fetch-blob) you will need to link this native package by running:
+Then, because this package has a depedency on [react-native-fs](https://github.com/itinance/react-native-fs) you will need to link this native package by running:
 
 ```bash
-$ react-native link rn-fetch-blob
+$ react-native link react-native-fs
 ```
 
-Linking rn-fetch-blob **should only be done once**, reinstalling node_modules with npm or yarn does not require running the above command again.
+Linking react-native-fs **should only be done once**, reinstalling node_modules with npm or yarn does not require running the above command again.
 
-To troubleshoot linking, refer to [the rn-fetch-blob installation instructions](https://github.com/joltup/rn-fetch-blob#user-content-installation).
+To troubleshoot linking, refer to [the react-native-fs installation instructions](https://github.com/itinance/react-native-fs#usage-ios).
 
 ## Usage
 
