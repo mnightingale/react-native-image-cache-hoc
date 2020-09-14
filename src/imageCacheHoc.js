@@ -62,6 +62,7 @@ export default function imageCacheHoc(Image, options = {}) {
         component: PropTypes.func,
         props: PropTypes.object,
       }),
+      onLoadFinished: PropTypes.func,
     };
 
     /**
@@ -238,6 +239,17 @@ export default function imageCacheHoc(Image, options = {}) {
       // See: https://github.com/billmalarky/react-native-image-cache-hoc/issues/6#issuecomment-354490597
       if (this._isMounted && localFilePath) {
         this.setState({ localFilePath });
+
+        if (this.props.onLoadFinished) {
+          Image.getSize(
+            Platform.OS === 'ios' ? localFilePath : 'file://' + localFilePath,
+            (width, height) => {
+              if (this._isMounted) {
+                this.props.onLoadFinished(width, height);
+              }
+            }
+          );
+        }
       }
     }
 

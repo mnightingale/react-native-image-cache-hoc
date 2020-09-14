@@ -94,6 +94,7 @@ describe('CacheableImage', function () {
       'permanent',
       'style',
       'placeholder',
+      'onLoadFinished',
     ]);
   });
 
