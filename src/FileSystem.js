@@ -86,9 +86,7 @@ export class FileSystem {
    */
   _setBaseFilePath(fileDirName = null) {
     let baseFilePath =
-      this.os == 'ios'
-        ? RNFetchBlob.fs.dirs.CacheDir
-        : RNFetchBlob.fs.dirs.DocumentDir;
+      this.os == 'ios' ? RNFetchBlob.fs.dirs.CacheDir : RNFetchBlob.fs.dirs.DocumentDir;
     baseFilePath += '/' + fileDirName + '/';
     return baseFilePath;
   }
@@ -108,9 +106,7 @@ export class FileSystem {
    * @private
    */
   _validatePath(path, absolute = false) {
-    let resolvedPath = absolute
-      ? pathLib.resolve(path)
-      : pathLib.resolve(this.baseFilePath + path); // resolve turns any path into an absolute path (ie: /folder1/folder2/../example.js resolves to /folder1/example.js)
+    let resolvedPath = absolute ? pathLib.resolve(path) : pathLib.resolve(this.baseFilePath + path); // resolve turns any path into an absolute path (ie: /folder1/folder2/../example.js resolves to /folder1/example.js)
 
     if (resolvedPath.substr(0, this.baseFilePath.length) != this.baseFilePath) {
       throw new Error(resolvedPath + ' is not a valid file path.');
@@ -192,18 +188,13 @@ export class FileSystem {
    */
   async fetchFile(url, permanent = false, fileName = null, clobber = false) {
     fileName = fileName || (await this.getFileNameFromUrl(url));
-    let path =
-      this.baseFilePath + (permanent ? 'permanent' : 'cache') + '/' + fileName;
+    let path = this.baseFilePath + (permanent ? 'permanent' : 'cache') + '/' + fileName;
     this._validatePath(path, true);
 
     // Clobber logic
-    let fileExistsAtPath = await this.exists(
-      (permanent ? 'permanent/' : 'cache/') + fileName
-    );
+    let fileExistsAtPath = await this.exists((permanent ? 'permanent/' : 'cache/') + fileName);
     if (!clobber && fileExistsAtPath) {
-      throw new Error(
-        'A file already exists at ' + path + ' and clobber is set to false.'
-      );
+      throw new Error('A file already exists at ' + path + ' and clobber is set to false.');
     }
 
     // Logic here prunes cache directory on "cache" writes to ensure cache doesn't get too large.
@@ -269,9 +260,7 @@ export class FileSystem {
           this._validatePath('cache/' + blobStatObject.filename)
         ) {
           overflowSize = overflowSize - parseInt(blobStatObject.size);
-          RNFetchBlob.fs.unlink(
-            this.baseFilePath + 'cache/' + blobStatObject.filename
-          );
+          RNFetchBlob.fs.unlink(this.baseFilePath + 'cache/' + blobStatObject.filename);
         }
       }
     }
@@ -300,10 +289,7 @@ export class FileSystem {
  *
  * @returns {FileSystem}
  */
-export default function FileSystemFactory(
-  cachePruneTriggerLimit = null,
-  fileDirName = null
-) {
+export default function FileSystemFactory(cachePruneTriggerLimit = null, fileDirName = null) {
   if (!(this instanceof FileSystem)) {
     return new FileSystem(cachePruneTriggerLimit, fileDirName);
   }

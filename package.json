@@ -31,7 +31,8 @@
   },
   "homepage": "https://github.com/billmalarky/react-native-image-cache-hoc#readme",
   "prettier": {
-    "singleQuote": true
+    "singleQuote": true,
+    "printWidth": 100
   },
   "jest": {
     "preset": "react-native",

@@ -40,9 +40,7 @@ describe('CacheableImage', function () {
         cachePruneTriggerLimit: 'string',
       });
     } catch (error) {
-      error.should.deepEqual(
-        new Error('cachePruneTriggerLimit option must be an integer.')
-      );
+      error.should.deepEqual(new Error('cachePruneTriggerLimit option must be an integer.'));
     }
 
     try {
@@ -111,15 +109,13 @@ describe('CacheableImage', function () {
 
     const CacheableImage = imageCacheHoc(Image);
 
-    return CacheableImage.cacheFile('https://i.redd.it/rc29s4bz61uz.png').then(
-      (result) => {
-        result.should.deepEqual({
-          url: 'https://i.redd.it/rc29s4bz61uz.png',
-          cacheType: 'cache',
-          localFilePath: '/this/is/path/to/file.jpg',
-        });
-      }
-    );
+    return CacheableImage.cacheFile('https://i.redd.it/rc29s4bz61uz.png').then((result) => {
+      result.should.deepEqual({
+        url: 'https://i.redd.it/rc29s4bz61uz.png',
+        cacheType: 'cache',
+        localFilePath: '/this/is/path/to/file.jpg',
+      });
+    });
   });
 
   it('#cacheFile static method should work as expected for permanent dir files.', () => {
@@ -135,10 +131,7 @@ describe('CacheableImage', function () {
 
     const CacheableImage = imageCacheHoc(Image);
 
-    return CacheableImage.cacheFile(
-      'https://i.redd.it/rc29s4bz61uz.png',
-      true
-    ).then((result) => {
+    return CacheableImage.cacheFile('https://i.redd.it/rc29s4bz61uz.png', true).then((result) => {
       result.should.deepEqual({
         url: 'https://i.redd.it/rc29s4bz61uz.png',
         cacheType: 'permanent',
@@ -167,9 +160,7 @@ describe('CacheableImage', function () {
     const cacheableImage = new CacheableImage(mockData.mockCacheableImageProps);
 
     // Ensure defaults set correctly
-    cacheableImage.props.should.have.properties(
-      mockData.mockCacheableImageProps
-    );
+    cacheableImage.props.should.have.properties(mockData.mockCacheableImageProps);
     cacheableImage.state.should.have.properties({
       localFilePath: null,
     });
@@ -241,14 +232,12 @@ describe('CacheableImage', function () {
 
     try {
       // eslint-disable-next-line no-unused-vars
-      const cacheableImageWithProtocolOpts = new CacheableImageWithProtocolOpts(
-        {
-          source: {
-            uri:
-              'https://www.google.com/logos/doodles/2017/day-of-the-dead-2017-6241959625621504-l.png',
-          },
-        }
-      );
+      const cacheableImageWithProtocolOpts = new CacheableImageWithProtocolOpts({
+        source: {
+          uri:
+            'https://www.google.com/logos/doodles/2017/day-of-the-dead-2017-6241959625621504-l.png',
+        },
+      });
 
       throw new Error('Invalid source uri prop was accepted.');
     } catch (error) {
@@ -344,9 +333,7 @@ describe('CacheableImage', function () {
 
     const CacheableImage = imageCacheHoc(Image);
 
-    const wrapper = shallow(
-      <CacheableImage {...mockData.mockCacheableImageProps} />
-    );
+    const wrapper = shallow(<CacheableImage {...mockData.mockCacheableImageProps} />);
 
     setImmediate(() => {
       expect(wrapper.prop('source')).toStrictEqual({
@@ -368,9 +355,7 @@ describe('CacheableImage', function () {
   it('#render with valid props does not throw an error.', (done) => {
     const CacheableImage = imageCacheHoc(Image);
 
-    const wrapper = shallow(
-      <CacheableImage {...mockData.mockCacheableImageProps} />
-    );
+    const wrapper = shallow(<CacheableImage {...mockData.mockCacheableImageProps} />);
 
     setImmediate(() => {
       expect(wrapper.prop('source')).toStrictEqual({

@@ -25,19 +25,12 @@ import uuid from 'react-native-uuid';
 export default function imageCacheHoc(Image, options = {}) {
   // Validate options
   if (options.validProtocols && !Array.isArray(options.validProtocols)) {
-    throw new Error(
-      'validProtocols option must be an array of protocol strings.'
-    );
+    throw new Error('validProtocols option must be an array of protocol strings.');
   }
   if (options.fileHostWhitelist && !Array.isArray(options.fileHostWhitelist)) {
-    throw new Error(
-      'fileHostWhitelist option must be an array of host strings.'
-    );
+    throw new Error('fileHostWhitelist option must be an array of host strings.');
   }
-  if (
-    options.cachePruneTriggerLimit &&
-    !Number.isInteger(options.cachePruneTriggerLimit)
-  ) {
+  if (options.cachePruneTriggerLimit && !Number.isInteger(options.cachePruneTriggerLimit)) {
     throw new Error('cachePruneTriggerLimit option must be an integer.');
   }
   if (options.fileDirName && typeof options.fileDirName !== 'string') {
@@ -78,10 +71,7 @@ export default function imageCacheHoc(Image, options = {}) {
      */
     static async cacheFile(url, permanent = false) {
       const fileSystem = FileSystemFactory();
-      const localFilePath = await fileSystem.getLocalFilePathFromUrl(
-        url,
-        permanent
-      );
+      const localFilePath = await fileSystem.getLocalFilePathFromUrl(url, permanent);
 
       return {
         url: url,
@@ -128,8 +118,7 @@ export default function imageCacheHoc(Image, options = {}) {
       this.options = {
         validProtocols: options.validProtocols || ['https'],
         fileHostWhitelist: options.fileHostWhitelist || [],
-        cachePruneTriggerLimit:
-          options.cachePruneTriggerLimit || 1024 * 1024 * 15, // Maximum size of image file cache in bytes before pruning occurs. Defaults to 15 MB.
+        cachePruneTriggerLimit: options.cachePruneTriggerLimit || 1024 * 1024 * 15, // Maximum size of image file cache in bytes before pruning occurs. Defaults to 15 MB.
         fileDirName: options.fileDirName || null, // Namespace local file writing to this directory. Defaults to 'react-native-image-cache-hoc'.
         defaultPlaceholder: options.defaultPlaceholder || null, // Default placeholder component to render while remote image file is downloading. Can be overridden with placeholder prop. Defaults to <Image> component with style prop passed through.
       };
@@ -157,10 +146,7 @@ export default function imageCacheHoc(Image, options = {}) {
       // Validate source prop to be a valid web accessible url.
       if (
         !traverse(this.props).get(['source', 'uri']) ||
-        !validator.isURL(
-          traverse(this.props).get(['source', 'uri']),
-          validatorUrlOptions
-        )
+        !validator.isURL(traverse(this.props).get(['source', 'uri']), validatorUrlOptions)
       ) {
         throw new Error(
           'Invalid source prop. <CacheableImage> props.source.uri should be a web accessible url with a valid protocol and host. NOTE: Default valid protocol is https, default valid hosts are *.'
@@ -226,10 +212,7 @@ export default function imageCacheHoc(Image, options = {}) {
       const permanent = this.props.permanent ? true : false;
       let localFilePath = null;
       try {
-        localFilePath = await this.fileSystem.getLocalFilePathFromUrl(
-          url,
-          permanent
-        );
+        localFilePath = await this.fileSystem.getLocalFilePathFromUrl(url, permanent);
       } catch (error) {
         console.warn(error); // eslint-disable-line no-console
       }
@@ -269,9 +252,7 @@ export default function imageCacheHoc(Image, options = {}) {
       if (this.state.localFilePath) {
         // Build platform specific file resource uri.
         const localFileUri =
-          Platform.OS == 'ios'
-            ? this.state.localFilePath
-            : 'file://' + this.state.localFilePath; // Android requires the traditional 3 prefixed slashes file:/// in a localhost absolute file uri.
+          Platform.OS == 'ios' ? this.state.localFilePath : 'file://' + this.state.localFilePath; // Android requires the traditional 3 prefixed slashes file:/// in a localhost absolute file uri.
 
         // Extract props proprietary to this HOC before passing props through.
         let { permanent, ...filteredProps } = this.props; // eslint-disable-line no-unused-vars
@@ -282,21 +263,13 @@ export default function imageCacheHoc(Image, options = {}) {
         return <Image {...props} />;
       } else {
         if (this.props.placeholder) {
-          return (
-            <this.props.placeholder.component
-              {...this.props.placeholder.props}
-            />
-          );
+          return <this.props.placeholder.component {...this.props.placeholder.props} />;
         } else if (this.options.defaultPlaceholder) {
           return (
-            <this.options.defaultPlaceholder.component
-              {...this.options.defaultPlaceholder.props}
-            />
+            <this.options.defaultPlaceholder.component {...this.options.defaultPlaceholder.props} />
           );
         } else {
-          return (
-            <Image style={this.props.style ? this.props.style : undefined} />
-          );
+          return <Image style={this.props.style ? this.props.style : undefined} />;
         }
       }
     }

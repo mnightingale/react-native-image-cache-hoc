@@ -59,9 +59,7 @@ describe('FileSystem', function () {
       let resolvedPath = pathLib.resolve(
         mockData.basePath + '/react-native-image-cache-hoc/' + badPath
       );
-      error.should.deepEqual(
-        new Error(resolvedPath + ' is not a valid file path.')
-      );
+      error.should.deepEqual(new Error(resolvedPath + ' is not a valid file path.'));
     }
 
     let goodPath = 'safe/path';
@@ -147,9 +145,7 @@ describe('FileSystem', function () {
     const unknownFilename = await fileSystem.getFileNameFromUrl(
       'https://cdn2.hubspot.net/hub/42284/file-14233687-jpg/images/test_in_red'
     );
-    unknownFilename.should.equal(
-      '831eb245a3d9032cdce450f8760d2b8ddb442a3d.bin'
-    );
+    unknownFilename.should.equal('831eb245a3d9032cdce450f8760d2b8ddb442a3d.bin');
   });
 
   it('#getLocalFilePathFromUrl should return local filepath if it exists on local fs in permanent dir.', () => {
@@ -227,13 +223,9 @@ describe('FileSystem', function () {
       })
       .catch((error) => {
         let resolvedPath = pathLib.resolve(
-          mockData.basePath +
-            '/react-native-image-cache-hoc/permanent/' +
-            badFileName
+          mockData.basePath + '/react-native-image-cache-hoc/permanent/' + badFileName
         );
-        error.should.deepEqual(
-          new Error(resolvedPath + ' is not a valid file path.')
-        );
+        error.should.deepEqual(new Error(resolvedPath + ' is not a valid file path.'));
       });
   });
 
@@ -370,9 +362,7 @@ describe('FileSystem', function () {
       .catch((error) => {
         let resolvedPath = pathLib.resolve(mockData.basePath + badFileName);
 
-        error.should.deepEqual(
-          new Error(resolvedPath + ' is not a valid file path.')
-        );
+        error.should.deepEqual(new Error(resolvedPath + ' is not a valid file path.'));
       });
   });
 
