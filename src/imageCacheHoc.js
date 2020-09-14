@@ -15,7 +15,6 @@
 
 // Load dependencies.
 import React from 'react';
-import { Platform } from 'react-native';
 import PropTypes from 'prop-types';
 import FileSystemFactory, { FileSystem } from './FileSystem';
 import traverse from 'traverse';
@@ -233,14 +232,11 @@ export default function imageCacheHoc(Image, options = {}) {
         this.setState({ localFilePath });
 
         if (!this.InvalidUrl && this.props.onLoadFinished) {
-          Image.getSize(
-            Platform.OS === 'ios' ? localFilePath : 'file://' + localFilePath,
-            (width, height) => {
-              if (this._isMounted) {
-                this.props.onLoadFinished(width, height);
-              }
+          Image.getSize(localFilePath, (width, height) => {
+            if (this._isMounted) {
+              this.props.onLoadFinished(width, height);
             }
-          );
+          });
         }
       }
     }
@@ -259,15 +255,11 @@ export default function imageCacheHoc(Image, options = {}) {
     render() {
       // If media loaded, render full image component, else render placeholder.
       if (this.state.localFilePath && !this.InvalidUrl) {
-        // Build platform specific file resource uri.
-        const localFileUri =
-          Platform.OS == 'ios' ? this.state.localFilePath : 'file://' + this.state.localFilePath; // Android requires the traditional 3 prefixed slashes file:/// in a localhost absolute file uri.
-
         // Extract props proprietary to this HOC before passing props through.
         let { permanent, ...filteredProps } = this.props; // eslint-disable-line no-unused-vars
 
         let props = Object.assign({}, filteredProps, {
-          source: { uri: localFileUri },
+          source: { uri: this.state.localFilePath },
         });
         return <Image {...props} />;
       } else {

@@ -152,7 +152,7 @@ export class FileSystem {
    *
    * @param url {String} - url of file to download.
    * @param permanent {Boolean} - True persists the file locally indefinitely, false caches the file temporarily (until file is removed during cache pruning).
-   * @returns {Promise} promise that resolves to the local file path of downloaded url file.
+   * @returns {Promise<string|null>} promise that resolves to the local file path of downloaded url file.
    */
   async getLocalFilePathFromUrl(url, permanent) {
     let filePath = null;
@@ -173,7 +173,11 @@ export class FileSystem {
       filePath = result.path;
     }
 
-    return filePath;
+    if (filePath) {
+      return Platform.OS === 'android' ? 'file://' + filePath : filePath;
+    }
+
+    return null;
   }
 
   /**
