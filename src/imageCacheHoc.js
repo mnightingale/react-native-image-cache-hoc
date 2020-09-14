@@ -130,7 +130,7 @@ export default function imageCacheHoc(Image, options = {}) {
       );
 
       // Validate input
-      this._validateImageComponent();
+      this.InvalidUrl = !this._validateImageComponent();
     }
 
     _validateImageComponent() {
@@ -195,6 +195,8 @@ export default function imageCacheHoc(Image, options = {}) {
       FileSystem.unlockCacheFile(fileName, this.componentId);
       FileSystem.lockCacheFile(nextFileName, this.componentId);
 
+      this.InvalidUrl = !this._validateImageComponent();
+
       // Init the image cache logic
       await this._loadImage(nextUrl);
     }
@@ -208,6 +210,11 @@ export default function imageCacheHoc(Image, options = {}) {
      * @private
      */
     async _loadImage(url) {
+      if (this.InvalidUrl) {
+        this.setState({ localFilePath: null });
+        return;
+      }
+
       // Check local fs for file, fallback to network and write file to disk if local file not found.
       const permanent = this.props.permanent ? true : false;
       let localFilePath = null;
@@ -217,13 +224,15 @@ export default function imageCacheHoc(Image, options = {}) {
         console.warn(error); // eslint-disable-line no-console
       }
 
+      this.InvalidUrl = !localFilePath;
+
       // Check component is still mounted to avoid calling setState() on components that were quickly
       // mounted then unmounted before componentDidMount() finishes.
       // See: https://github.com/billmalarky/react-native-image-cache-hoc/issues/6#issuecomment-354490597
       if (this._isMounted && localFilePath) {
         this.setState({ localFilePath });
 
-        if (this.props.onLoadFinished) {
+        if (!this.InvalidUrl && this.props.onLoadFinished) {
           Image.getSize(
             Platform.OS === 'ios' ? localFilePath : 'file://' + localFilePath,
             (width, height) => {
@@ -249,7 +258,7 @@ export default function imageCacheHoc(Image, options = {}) {
 
     render() {
       // If media loaded, render full image component, else render placeholder.
-      if (this.state.localFilePath) {
+      if (this.state.localFilePath && !this.InvalidUrl) {
         // Build platform specific file resource uri.
         const localFileUri =
           Platform.OS == 'ios' ? this.state.localFilePath : 'file://' + this.state.localFilePath; // Android requires the traditional 3 prefixed slashes file:/// in a localhost absolute file uri.

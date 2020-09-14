@@ -211,7 +211,10 @@ export class FileSystem {
     } catch (error) {
       // File must be manually removed on download error https://github.com/wkh237/react-native-fetch-blob/issues/331
       await RNFetchBlob.fs.unlink(path);
-      throw error;
+      return {
+        path: null,
+        fileName: pathLib.basename(path),
+      };
     }
 
     return {
