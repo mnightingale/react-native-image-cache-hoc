@@ -69,7 +69,7 @@ export default function imageCacheHoc(Image, options = {}) {
      * @returns {Promise} promise that resolves to an object that contains cached file info.
      */
     static async cacheFile(url, permanent = false) {
-      const fileSystem = FileSystemFactory();
+      const fileSystem = FileSystemFactory(options.cachePruneTriggerLimit, options.fileDirName);
       const localFilePath = await fileSystem.getLocalFilePathFromUrl(url, permanent);
 
       return {
@@ -87,7 +87,7 @@ export default function imageCacheHoc(Image, options = {}) {
      * @returns {Promise} promise that resolves to an object that contains the flush results.
      */
     static async flush() {
-      const fileSystem = FileSystemFactory();
+      const fileSystem = FileSystemFactory(options.cachePruneTriggerLimit, options.fileDirName);
       const results = await Promise.all([
         fileSystem.unlink('permanent'),
         fileSystem.unlink('cache'),
