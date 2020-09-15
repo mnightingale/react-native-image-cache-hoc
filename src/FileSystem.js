@@ -194,6 +194,55 @@ export class FileSystem {
 
   /**
    *
+   * Manually move or copy a file to the cache.
+   * Can be used to pre-warm caches.
+   * If calling this method repeatedly to cache a long list of files,
+   * be sure to use a queue and limit concurrency so your app performance does not suffer.
+   *
+   * @param local {String} - path to the local file.
+   * @param url {String} - url of file to download.
+   * @param permanent {Boolean} - whether the file should be saved to the tmp or permanent cache directory.
+   * @param move {Boolean} - whether the file should be copied or moved.
+   * @returns {Promise} promise that resolves to an object that contains cached file info.
+   */
+  async cacheLocalFile(local, url, permanent = false, move = false) {
+    const fileName = await this.getFileNameFromUrl(url);
+    let path = this.baseFilePath + (permanent ? 'permanent/' : 'cache/') + fileName;
+    this._validatePath(path, true);
+
+    // Logic here prunes cache directory on "cache" writes to ensure cache doesn't get too large.
+    if (!permanent) {
+      await this.pruneCache();
+    }
+
+    // Move or copy the file to the cache
+    try {
+      const cacheDirExists = await this.exists(permanent ? 'permanent' : 'cache');
+      if (!cacheDirExists) {
+        await RNFS.mkdir(`${this.baseFilePath}${permanent ? 'permanent' : 'cache'}`);
+      }
+
+      await RNFSUnlinkIfExists(path);
+      const { promise } = move ? RNFS.moveFile(local, path) : RNFS.copyFile(local, path);
+      await promise;
+    } catch (error) {
+      await RNFSUnlinkIfExists(path);
+      return {
+        url: null,
+        cacheType: permanent ? 'permanent' : 'cache',
+        path: null,
+      };
+    }
+
+    return {
+      url: url,
+      cacheType: permanent ? 'permanent' : 'cache',
+      path: path,
+    };
+  }
+
+  /**
+   *
    * Used to download files to local filesystem.
    *
    * @param url {String} - url of file to download.

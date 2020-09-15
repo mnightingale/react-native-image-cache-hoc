@@ -81,6 +81,24 @@ export default function imageCacheHoc(Image, options = {}) {
 
     /**
      *
+     * Manually move or copy a file to the cache.
+     * Can be used to pre-warm caches.
+     * If calling this method repeatedly to cache a long list of files,
+     * be sure to use a queue and limit concurrency so your app performance does not suffer.
+     *
+     * @param local {String} - path to the local file.
+     * @param url {String} - url of file to download.
+     * @param permanent {Boolean} - whether the file should be saved to the tmp or permanent cache directory.
+     * @param move {Boolean} - whether the file should be copied or moved.
+     * @returns {Promise} promise that resolves to an object that contains cached file info.
+     */
+    static async cacheLocalFile(local, url, permanent = false, move = false) {
+      const fileSystem = FileSystemFactory(options.cachePruneTriggerLimit, options.fileDirName);
+      return fileSystem.cacheLocalFile(local, url, permanent, move);
+    }
+
+    /**
+     *
      * Delete all locally stored image files created by react-native-image-cache-hoc (cache AND permanent).
      * Calling this method will cause a performance hit on your app until the local files are rebuilt.
      *
