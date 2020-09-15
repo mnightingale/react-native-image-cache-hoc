@@ -7,24 +7,24 @@
  *
  */
 
-import { Platform } from 'react-native';
-import pathLib from 'path';
-import RNFS from 'react-native-fs';
-import sha1 from 'crypto-js/sha1';
-import URL from 'url-parse';
+import { Platform } from 'react-native'
+import pathLib from 'path'
+import RNFS from 'react-native-fs'
+import sha1 from 'crypto-js/sha1'
+import URL from 'url-parse'
 
 /**
  * Resolves if 'unlink' resolves or if the file doesn't exist.
  *
  * @param {string} filename
  */
-const RNFSUnlinkIfExists = (filename) =>
+const RNFSUnlinkIfExists = (filename: string) =>
   RNFS.exists(filename).then((exists) => {
     if (exists) {
-      return RNFS.unlink(filename);
+      return RNFS.unlink(filename)
     }
-    return Promise.resolve();
-  });
+    return Promise.resolve()
+  })
 
 export class FileSystem {
   /**
@@ -48,23 +48,29 @@ export class FileSystem {
    * 2nd <CacheableImage> mounts concurrently and during download runs pruneCache(), deleting 1st <CacheableImage>'s image file from cache.
    * 1st <CacheableImage> calls render() again at some point in the future, at this time it's image file no longer exists so the render fails.
    */
-  static cacheLock = {};
+  static cacheLock: {
+    [key: string]: {
+      [component: string]: boolean
+    }
+  } = {}
+  baseFilePath: string
+  cachePruneTriggerLimit: number
 
-  static lockCacheFile(fileName, componentId) {
+  static lockCacheFile(fileName: string, componentId: string) {
     // If file is already locked, add additional component lock, else create initial file lock.
     if (FileSystem.cacheLock[fileName]) {
-      FileSystem.cacheLock[fileName][componentId] = true;
+      FileSystem.cacheLock[fileName][componentId] = true
     } else {
-      let componentDict = {};
-      componentDict[componentId] = true;
-      FileSystem.cacheLock[fileName] = componentDict;
+      const componentDict: { [component: string]: boolean } = {}
+      componentDict[componentId] = true
+      FileSystem.cacheLock[fileName] = componentDict
     }
   }
 
-  static unlockCacheFile(fileName, componentId) {
+  static unlockCacheFile(fileName: string, componentId: string) {
     // Delete component lock on cache file
     if (FileSystem.cacheLock[fileName]) {
-      delete FileSystem.cacheLock[fileName][componentId];
+      delete FileSystem.cacheLock[fileName][componentId]
     }
 
     // If no further component locks remain on cache file, delete filename property from cacheLock dictionary.
@@ -72,15 +78,14 @@ export class FileSystem {
       FileSystem.cacheLock[fileName] &&
       Object.keys(FileSystem.cacheLock[fileName]).length === 0
     ) {
-      delete FileSystem.cacheLock[fileName];
+      delete FileSystem.cacheLock[fileName]
     }
   }
 
-  constructor(cachePruneTriggerLimit = null, fileDirName = null) {
-    this.os = Platform.OS;
-    this.cachePruneTriggerLimit = cachePruneTriggerLimit || 1024 * 1024 * 15; // Maximum size of image file cache in bytes before pruning occurs. Defaults to 15 MB.
-    fileDirName = fileDirName || 'react-native-image-cache-hoc'; // Namespace local file writing to this folder.
-    this.baseFilePath = this._setBaseFilePath(fileDirName);
+  constructor(cachePruneTriggerLimit: number | null, fileDirName: string | null) {
+    this.cachePruneTriggerLimit = cachePruneTriggerLimit || 1024 * 1024 * 15 // Maximum size of image file cache in bytes before pruning occurs. Defaults to 15 MB.
+    fileDirName = fileDirName || 'react-native-image-cache-hoc' // Namespace local file writing to this folder.
+    this.baseFilePath = this._setBaseFilePath(fileDirName)
   }
 
   /**
@@ -97,10 +102,10 @@ export class FileSystem {
    * @returns {String} baseFilePath - base path that files are written to in local fs.
    * @private
    */
-  _setBaseFilePath(fileDirName = null) {
-    let baseFilePath = this.os == 'ios' ? RNFS.CachesDirectoryPath : RNFS.DocumentDirectoryPath;
-    baseFilePath += '/' + fileDirName + '/';
-    return baseFilePath;
+  _setBaseFilePath(fileDirName?: string) {
+    let baseFilePath = Platform.OS === 'ios' ? RNFS.CachesDirectoryPath : RNFS.DocumentDirectoryPath
+    baseFilePath += '/' + fileDirName + '/'
+    return baseFilePath
   }
 
   /**
@@ -117,13 +122,15 @@ export class FileSystem {
    * @throws error on bad filepath.
    * @private
    */
-  _validatePath(path, absolute = false) {
-    let resolvedPath = absolute ? pathLib.resolve(path) : pathLib.resolve(this.baseFilePath + path); // resolve turns any path into an absolute path (ie: /folder1/folder2/../example.js resolves to /folder1/example.js)
+  _validatePath(path: string, absolute = false) {
+    const resolvedPath = absolute
+      ? pathLib.resolve(path)
+      : pathLib.resolve(this.baseFilePath + path) // resolve turns any path into an absolute path (ie: /folder1/folder2/../example.js resolves to /folder1/example.js)
 
-    if (resolvedPath.substr(0, this.baseFilePath.length) != this.baseFilePath) {
-      throw new Error(resolvedPath + ' is not a valid file path.');
+    if (resolvedPath.substr(0, this.baseFilePath.length) !== this.baseFilePath) {
+      throw new Error(resolvedPath + ' is not a valid file path.')
     } else {
-      return true;
+      return true
     }
   }
 
@@ -134,9 +141,9 @@ export class FileSystem {
    * @param path - local relative file path.
    * @returns {Promise} - boolean promise for if file exists at path or not.
    */
-  exists(path) {
-    this._validatePath(path);
-    return RNFS.exists(pathLib.resolve(this.baseFilePath + path));
+  exists(path: string) {
+    this._validatePath(path)
+    return RNFS.exists(pathLib.resolve(this.baseFilePath + path))
   }
 
   /**
@@ -147,14 +154,14 @@ export class FileSystem {
    * @throws error on invalid (non jpg, png, gif, bmp) url file type. NOTE file extension or content-type header does not guarantee file mime type. We are trusting that it is set correctly on the server side.
    * @returns fileName {string} - A SHA1 filename that is unique to the resource located at passed in URL and includes an appropriate extension.
    */
-  async getFileNameFromUrl(url) {
-    const urlParts = new URL(url);
-    const urlExt = urlParts.pathname.split('.').pop();
+  async getFileNameFromUrl(url: string) {
+    const urlParts = new URL(url)
+    const urlExt = urlParts.pathname.split('.').pop()
 
     // react-native enforces Image src to default to a file extension of png
-    let extension = urlExt === urlParts.pathname ? 'bin' : urlExt;
+    const extension = urlExt === urlParts.pathname ? 'bin' : urlExt
 
-    return sha1(url).toString() + '.' + extension;
+    return sha1(url).toString() + '.' + extension
   }
 
   /**
@@ -166,30 +173,30 @@ export class FileSystem {
    * @param permanent {Boolean} - True persists the file locally indefinitely, false caches the file temporarily (until file is removed during cache pruning).
    * @returns {Promise<string|null>} promise that resolves to the local file path of downloaded url file.
    */
-  async getLocalFilePathFromUrl(url, permanent) {
-    let filePath = null;
+  async getLocalFilePathFromUrl(url: string, permanent: boolean) {
+    let filePath = null
 
-    let fileName = await this.getFileNameFromUrl(url);
+    const fileName = await this.getFileNameFromUrl(url)
 
-    let permanentFileExists = this.exists('permanent/' + fileName);
-    let cacheFileExists = this.exists('cache/' + fileName);
+    const permanentFileExists = this.exists('permanent/' + fileName)
+    const cacheFileExists = this.exists('cache/' + fileName)
 
-    let exists = await Promise.all([permanentFileExists, cacheFileExists]);
+    const exists = await Promise.all([permanentFileExists, cacheFileExists])
 
     if (exists[0]) {
-      filePath = this.baseFilePath + 'permanent/' + fileName;
+      filePath = this.baseFilePath + 'permanent/' + fileName
     } else if (exists[1]) {
-      filePath = this.baseFilePath + 'cache/' + fileName;
+      filePath = this.baseFilePath + 'cache/' + fileName
     } else {
-      let result = await this.fetchFile(url, permanent, null, true); // Clobber must be true to allow concurrent CacheableImage components with same source url (ie: bullet point images).
-      filePath = result.path;
+      const result = await this.fetchFile(url, permanent, null, true) // Clobber must be true to allow concurrent CacheableImage components with same source url (ie: bullet point images).
+      filePath = result.path
     }
 
     if (filePath) {
-      return Platform.OS === 'android' ? 'file://' + filePath : filePath;
+      return Platform.OS === 'android' ? 'file://' + filePath : filePath
     }
 
-    return null;
+    return null
   }
 
   /**
@@ -205,40 +212,39 @@ export class FileSystem {
    * @param move {Boolean} - whether the file should be copied or moved.
    * @returns {Promise} promise that resolves to an object that contains cached file info.
    */
-  async cacheLocalFile(local, url, permanent = false, move = false) {
-    const fileName = await this.getFileNameFromUrl(url);
-    let path = this.baseFilePath + (permanent ? 'permanent/' : 'cache/') + fileName;
-    this._validatePath(path, true);
+  async cacheLocalFile(local: string, url: string, permanent = false, move = false) {
+    const fileName = await this.getFileNameFromUrl(url)
+    const path = this.baseFilePath + (permanent ? 'permanent/' : 'cache/') + fileName
+    this._validatePath(path, true)
 
     // Logic here prunes cache directory on "cache" writes to ensure cache doesn't get too large.
     if (!permanent) {
-      await this.pruneCache();
+      await this.pruneCache()
     }
 
     // Move or copy the file to the cache
     try {
-      const cacheDirExists = await this.exists(permanent ? 'permanent' : 'cache');
+      const cacheDirExists = await this.exists(permanent ? 'permanent' : 'cache')
       if (!cacheDirExists) {
-        await RNFS.mkdir(`${this.baseFilePath}${permanent ? 'permanent' : 'cache'}`);
+        await RNFS.mkdir(`${this.baseFilePath}${permanent ? 'permanent' : 'cache'}`)
       }
 
-      await RNFSUnlinkIfExists(path);
-      const { promise } = move ? RNFS.moveFile(local, path) : RNFS.copyFile(local, path);
-      await promise;
+      await RNFSUnlinkIfExists(path)
+      await (move ? RNFS.moveFile(local, path) : RNFS.copyFile(local, path))
     } catch (error) {
-      await RNFSUnlinkIfExists(path);
+      await RNFSUnlinkIfExists(path)
       return {
         url: null,
         cacheType: permanent ? 'permanent' : 'cache',
         path: null,
-      };
+      }
     }
 
     return {
       url: url,
       cacheType: permanent ? 'permanent' : 'cache',
       path: path,
-    };
+    }
   }
 
   /**
@@ -251,49 +257,49 @@ export class FileSystem {
    * @param clobber {String} - whether or not to overwrite a file that already exists at path. defaults to false.
    * @returns {Promise} promise that resolves to an object that contains the local path of the downloaded file and the filename.
    */
-  async fetchFile(url, permanent = false, fileName = null, clobber = false) {
-    fileName = fileName || (await this.getFileNameFromUrl(url));
-    let path = this.baseFilePath + (permanent ? 'permanent/' : 'cache/') + fileName;
-    this._validatePath(path, true);
+  async fetchFile(url: string, permanent = false, fileName: string | null, clobber = false) {
+    fileName = fileName || (await this.getFileNameFromUrl(url))
+    const path = this.baseFilePath + (permanent ? 'permanent/' : 'cache/') + fileName
+    this._validatePath(path, true)
 
     // Clobber logic
-    let fileExistsAtPath = await this.exists((permanent ? 'permanent/' : 'cache/') + fileName);
+    const fileExistsAtPath = await this.exists((permanent ? 'permanent/' : 'cache/') + fileName)
     if (!clobber && fileExistsAtPath) {
-      throw new Error('A file already exists at ' + path + ' and clobber is set to false.');
+      throw new Error('A file already exists at ' + path + ' and clobber is set to false.')
     }
 
     // Logic here prunes cache directory on "cache" writes to ensure cache doesn't get too large.
     if (!permanent) {
-      await this.pruneCache();
+      await this.pruneCache()
     }
 
     // Hit network and download file to local disk.
     try {
-      const cacheDirExists = await this.exists(permanent ? 'permanent' : 'cache');
+      const cacheDirExists = await this.exists(permanent ? 'permanent' : 'cache')
       if (!cacheDirExists) {
-        await RNFS.mkdir(`${this.baseFilePath}${permanent ? 'permanent' : 'cache'}`);
+        await RNFS.mkdir(`${this.baseFilePath}${permanent ? 'permanent' : 'cache'}`)
       }
 
       const { promise } = RNFS.downloadFile({
         fromUrl: url,
         toFile: path,
-      });
-      const response = await promise;
+      })
+      const response = await promise
       if (response.statusCode !== 200) {
-        throw response;
+        throw response
       }
     } catch (error) {
-      await RNFSUnlinkIfExists(path);
+      await RNFSUnlinkIfExists(path)
       return {
         path: null,
         fileName: pathLib.basename(path),
-      };
+      }
     }
 
     return {
       path,
       fileName: pathLib.basename(path),
-    };
+    }
   }
 
   /**
@@ -306,37 +312,38 @@ export class FileSystem {
   async pruneCache() {
     // If cache directory does not exist yet there's no need for pruning.
     if (!(await this.exists('cache'))) {
-      return;
+      return
     }
 
     // Get directory contents
-    let dirContents = await RNFS.readDir(this.baseFilePath + 'cache');
+    const dirContents = await RNFS.readDir(this.baseFilePath + 'cache')
 
     // Sort dirContents in order of oldest to newest file.
     dirContents.sort((a, b) => {
-      return a.mtime - b.mtime;
-    });
+      return (a.mtime?.getTime() ?? 0) - (b.mtime?.getTime() ?? 0)
+    })
 
-    let currentCacheSize = dirContents.reduce((cacheSize, blobStatObject) => {
-      return cacheSize + parseInt(blobStatObject.size);
-    }, 0);
+    const currentCacheSize = dirContents.reduce((cacheSize, blobStatObject) => {
+      return cacheSize + parseInt(blobStatObject.size)
+    }, 0)
 
     // Prune cache if current cache size is too big.
     if (currentCacheSize > this.cachePruneTriggerLimit) {
-      let overflowSize = currentCacheSize - this.cachePruneTriggerLimit;
+      let overflowSize = currentCacheSize - this.cachePruneTriggerLimit
 
       // Keep deleting cached files so long as the current cache size is larger than the size required to trigger cache pruning, or until
       // all cache files have been evaluated.
       while (overflowSize > 0 && dirContents.length) {
-        let contentFile = dirContents.shift();
+        const contentFile = dirContents.shift()
 
         // Only prune unlocked files from cache
         if (
+          contentFile &&
           !FileSystem.cacheLock[contentFile.name] &&
           this._validatePath('cache/' + contentFile.name)
         ) {
-          overflowSize -= parseInt(contentFile.size);
-          RNFSUnlinkIfExists(this.baseFilePath + 'cache/' + contentFile.name);
+          overflowSize -= parseInt(contentFile.size)
+          RNFSUnlinkIfExists(this.baseFilePath + 'cache/' + contentFile.name)
         }
       }
     }
@@ -348,14 +355,14 @@ export class FileSystem {
    * @param path - local relative file path.
    * @returns {Promise} - boolean promise for if deletion was successful.
    */
-  async unlink(path) {
-    this._validatePath(path);
+  async unlink(path: string) {
+    this._validatePath(path)
 
     try {
-      await RNFSUnlinkIfExists(pathLib.resolve(this.baseFilePath + path));
-      return true;
+      await RNFSUnlinkIfExists(pathLib.resolve(this.baseFilePath + path))
+      return true
     } catch (error) {
-      return false;
+      return false
     }
   }
 }
@@ -365,8 +372,9 @@ export class FileSystem {
  *
  * @returns {FileSystem}
  */
-export default function FileSystemFactory(cachePruneTriggerLimit = null, fileDirName = null) {
-  if (!(this instanceof FileSystem)) {
-    return new FileSystem(cachePruneTriggerLimit, fileDirName);
-  }
+export default function FileSystemFactory(
+  cachePruneTriggerLimit?: number | null,
+  fileDirName?: string | null,
+): FileSystem {
+  return new FileSystem(cachePruneTriggerLimit || null, fileDirName || null)
 }

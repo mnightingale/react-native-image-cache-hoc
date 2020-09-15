@@ -14,37 +14,78 @@
  */
 
 // Load dependencies.
-import React from 'react';
-import PropTypes from 'prop-types';
-import FileSystemFactory, { FileSystem } from './FileSystem';
-import traverse from 'traverse';
-import validator from 'validator';
-import uuid from 'react-native-uuid';
+import React from 'react'
+import PropTypes from 'prop-types'
+import FileSystemFactory, { FileSystem } from './FileSystem'
+import traverse from 'traverse'
+import validator from 'validator'
+import uuid from 'react-native-uuid'
+import { Image, ImageStyle, StyleProp } from 'react-native'
 
-export default function imageCacheHoc(Image, options = {}) {
+export type Source = {
+  uri?: string
+}
+
+export interface OnLoadEvent {
+  width: number
+  height: number
+}
+
+export interface ReactNativeImageCacheHocProps {
+  source?: Source
+  permanent?: boolean
+  onLoadFinished?(event: OnLoadEvent): void
+
+  style?: StyleProp<ImageStyle>
+
+  placeholder?: { component: React.ComponentType; props: any }
+}
+
+export interface ReactNativeImageCacheHocState {
+  localFilePath: string | null
+}
+
+export interface ReactNativeImageCacheHocOptions {
+  validProtocols?: string[]
+  fileHostWhitelist?: string[]
+  cachePruneTriggerLimit?: number // Maximum size of image file cache in bytes before pruning occurs. Defaults to 15 MB.
+  fileDirName?: string | null // Namespace local file writing to this directory. Defaults to 'react-native-image-cache-hoc'.
+  defaultPlaceholder?: {
+    component: React.ComponentType
+    props: any
+  } | null
+}
+
+const imageCacheHoc = <P extends object>(
+  Wrapped: React.ComponentType<P>,
+  options: ReactNativeImageCacheHocOptions = {},
+) => {
   // Validate options
   if (options.validProtocols && !Array.isArray(options.validProtocols)) {
-    throw new Error('validProtocols option must be an array of protocol strings.');
+    throw new Error('validProtocols option must be an array of protocol strings.')
   }
   if (options.fileHostWhitelist && !Array.isArray(options.fileHostWhitelist)) {
-    throw new Error('fileHostWhitelist option must be an array of host strings.');
+    throw new Error('fileHostWhitelist option must be an array of host strings.')
   }
   if (options.cachePruneTriggerLimit && !Number.isInteger(options.cachePruneTriggerLimit)) {
-    throw new Error('cachePruneTriggerLimit option must be an integer.');
+    throw new Error('cachePruneTriggerLimit option must be an integer.')
   }
   if (options.fileDirName && typeof options.fileDirName !== 'string') {
-    throw new Error('fileDirName option must be string');
+    throw new Error('fileDirName option must be string')
   }
   if (
     options.defaultPlaceholder &&
     (!options.defaultPlaceholder.component || !options.defaultPlaceholder.props)
   ) {
     throw new Error(
-      'defaultPlaceholder option object must include "component" and "props" properties (props can be an empty object)'
-    );
+      'defaultPlaceholder option object must include "component" and "props" properties (props can be an empty object)',
+    )
   }
 
-  return class extends React.PureComponent {
+  return class extends React.PureComponent<
+    P & ReactNativeImageCacheHocProps,
+    ReactNativeImageCacheHocState
+  > {
     static propTypes = {
       fileHostWhitelist: PropTypes.array,
       source: PropTypes.object.isRequired,
@@ -55,7 +96,13 @@ export default function imageCacheHoc(Image, options = {}) {
         props: PropTypes.object,
       }),
       onLoadFinished: PropTypes.func,
-    };
+    }
+
+    componentId: any
+    _isMounted: boolean
+    options: Required<ReactNativeImageCacheHocOptions>
+    fileSystem: FileSystem
+    InvalidUrl: boolean
 
     /**
      *
@@ -68,15 +115,18 @@ export default function imageCacheHoc(Image, options = {}) {
      * @param permanent {Boolean} - whether the file should be saved to the tmp or permanent cache directory.
      * @returns {Promise} promise that resolves to an object that contains cached file info.
      */
-    static async cacheFile(url, permanent = false) {
-      const fileSystem = FileSystemFactory(options.cachePruneTriggerLimit, options.fileDirName);
-      const localFilePath = await fileSystem.getLocalFilePathFromUrl(url, permanent);
+    static async cacheFile(url: string, permanent = false) {
+      const fileSystem = FileSystemFactory(
+        options.cachePruneTriggerLimit || null,
+        options.fileDirName || null,
+      )
+      const localFilePath = await fileSystem.getLocalFilePathFromUrl(url, permanent)
 
       return {
         url: url,
         cacheType: permanent ? 'permanent' : 'cache',
         localFilePath,
-      };
+      }
     }
 
     /**
@@ -92,9 +142,12 @@ export default function imageCacheHoc(Image, options = {}) {
      * @param move {Boolean} - whether the file should be copied or moved.
      * @returns {Promise} promise that resolves to an object that contains cached file info.
      */
-    static async cacheLocalFile(local, url, permanent = false, move = false) {
-      const fileSystem = FileSystemFactory(options.cachePruneTriggerLimit, options.fileDirName);
-      return fileSystem.cacheLocalFile(local, url, permanent, move);
+    static async cacheLocalFile(local: string, url: string, permanent = false, move = false) {
+      const fileSystem = FileSystemFactory(
+        options.cachePruneTriggerLimit || null,
+        options.fileDirName || null,
+      )
+      return fileSystem.cacheLocalFile(local, url, permanent, move)
     }
 
     /**
@@ -105,31 +158,34 @@ export default function imageCacheHoc(Image, options = {}) {
      * @returns {Promise} promise that resolves to an object that contains the flush results.
      */
     static async flush() {
-      const fileSystem = FileSystemFactory(options.cachePruneTriggerLimit, options.fileDirName);
+      const fileSystem = FileSystemFactory(
+        options.cachePruneTriggerLimit || null,
+        options.fileDirName || null,
+      )
       const results = await Promise.all([
         fileSystem.unlink('permanent'),
         fileSystem.unlink('cache'),
-      ]);
+      ])
 
       return {
         permanentDirFlushed: results[0],
         cacheDirFlushed: results[1],
-      };
+      }
     }
 
-    constructor(props) {
-      super(props);
+    constructor(props: P) {
+      super(props)
 
       // Set initial state
       this.state = {
         localFilePath: null,
-      };
+      }
 
       // Assign component unique ID for cache locking.
-      this.componentId = uuid.v4();
+      this.componentId = uuid.v4()
 
       // Track component mount status to avoid calling setState() on unmounted component.
-      this._isMounted = false;
+      this._isMounted = false
 
       // Set default options
       this.options = {
@@ -138,26 +194,28 @@ export default function imageCacheHoc(Image, options = {}) {
         cachePruneTriggerLimit: options.cachePruneTriggerLimit || 1024 * 1024 * 15, // Maximum size of image file cache in bytes before pruning occurs. Defaults to 15 MB.
         fileDirName: options.fileDirName || null, // Namespace local file writing to this directory. Defaults to 'react-native-image-cache-hoc'.
         defaultPlaceholder: options.defaultPlaceholder || null, // Default placeholder component to render while remote image file is downloading. Can be overridden with placeholder prop. Defaults to <Image> component with style prop passed through.
-      };
+      }
 
       // Init file system lib
       this.fileSystem = FileSystemFactory(
         this.options.cachePruneTriggerLimit,
-        this.options.fileDirName
-      );
+        this.options.fileDirName,
+      )
 
       // Validate input
-      this.InvalidUrl = !this._validateImageComponent();
+      this.InvalidUrl = !this._validateImageComponent()
     }
 
     _validateImageComponent() {
       // Define validator options
-      let validatorUrlOptions = {
+      const validatorUrlOptions: validator.IsURLOptions = {
         protocols: this.options.validProtocols,
+        // eslint-disable-next-line @typescript-eslint/camelcase
         require_protocol: true,
-      };
+      }
       if (this.options.fileHostWhitelist.length) {
-        validatorUrlOptions.host_whitelist = this.options.fileHostWhitelist;
+        // eslint-disable-next-line @typescript-eslint/camelcase
+        validatorUrlOptions.host_whitelist = this.options.fileHostWhitelist
       }
 
       // Validate source prop to be a valid web accessible url.
@@ -166,10 +224,10 @@ export default function imageCacheHoc(Image, options = {}) {
         !validator.isURL(traverse(this.props).get(['source', 'uri']), validatorUrlOptions)
       ) {
         throw new Error(
-          'Invalid source prop. <CacheableImage> props.source.uri should be a web accessible url with a valid protocol and host. NOTE: Default valid protocol is https, default valid hosts are *.'
-        );
+          'Invalid source prop. <CacheableImage> props.source.uri should be a web accessible url with a valid protocol and host. NOTE: Default valid protocol is https, default valid hosts are *.',
+        )
       } else {
-        return true;
+        return true
       }
     }
 
@@ -177,17 +235,17 @@ export default function imageCacheHoc(Image, options = {}) {
     // See: https://reactjs.org/docs/react-component.html#componentdidmount
     async componentDidMount() {
       // Track component mount status to avoid calling setState() on unmounted component.
-      this._isMounted = true;
+      this._isMounted = true
 
       // Set url from source prop
-      const url = traverse(this.props).get(['source', 'uri']);
+      const url = traverse(this.props).get(['source', 'uri'])
 
       // Add a cache lock to file with this name (prevents concurrent <CacheableImage> components from pruning a file with this name from cache).
-      const fileName = await this.fileSystem.getFileNameFromUrl(url);
-      FileSystem.lockCacheFile(fileName, this.componentId);
+      const fileName = await this.fileSystem.getFileNameFromUrl(url)
+      FileSystem.lockCacheFile(fileName, this.componentId)
 
       // Init the image cache logic
-      await this._loadImage(url);
+      await this._loadImage(url)
     }
 
     /**
@@ -197,25 +255,25 @@ export default function imageCacheHoc(Image, options = {}) {
      *
      * @param prevProps {Object} - Previous props.
      */
-    async componentDidUpdate(prevProps) {
+    async componentDidUpdate(prevProps: ReactNativeImageCacheHocProps) {
       // Set urls from source prop data
-      const url = traverse(prevProps).get(['source', 'uri']);
-      const nextUrl = traverse(this.props).get(['source', 'uri']);
+      const url = traverse(prevProps).get(['source', 'uri'])
+      const nextUrl = traverse(this.props).get(['source', 'uri'])
 
       // Do nothing if url has not changed.
-      if (url === nextUrl) return;
+      if (url === nextUrl) return
 
       // Remove component cache lock on old image file, and add cache lock to new image file.
-      const fileName = await this.fileSystem.getFileNameFromUrl(url);
-      const nextFileName = await this.fileSystem.getFileNameFromUrl(nextUrl);
+      const fileName = await this.fileSystem.getFileNameFromUrl(url)
+      const nextFileName = await this.fileSystem.getFileNameFromUrl(nextUrl)
 
-      FileSystem.unlockCacheFile(fileName, this.componentId);
-      FileSystem.lockCacheFile(nextFileName, this.componentId);
+      FileSystem.unlockCacheFile(fileName, this.componentId)
+      FileSystem.lockCacheFile(nextFileName, this.componentId)
 
-      this.InvalidUrl = !this._validateImageComponent();
+      this.InvalidUrl = !this._validateImageComponent()
 
       // Init the image cache logic
-      await this._loadImage(nextUrl);
+      await this._loadImage(nextUrl)
     }
 
     /**
@@ -226,71 +284,73 @@ export default function imageCacheHoc(Image, options = {}) {
      * @param url {String} - The remote image url.
      * @private
      */
-    async _loadImage(url) {
+    async _loadImage(url: string) {
       if (this.InvalidUrl) {
-        this.setState({ localFilePath: null });
-        return;
+        this.setState({ localFilePath: null })
+        return
       }
 
       // Check local fs for file, fallback to network and write file to disk if local file not found.
-      const permanent = this.props.permanent ? true : false;
-      let localFilePath = null;
+      const permanent = this.props.permanent ? true : false
+      let localFilePath = null
       try {
-        localFilePath = await this.fileSystem.getLocalFilePathFromUrl(url, permanent);
+        localFilePath = await this.fileSystem.getLocalFilePathFromUrl(url, permanent)
       } catch (error) {
-        console.warn(error); // eslint-disable-line no-console
+        console.warn(error) // eslint-disable-line no-console
       }
 
-      this.InvalidUrl = !localFilePath;
+      this.InvalidUrl = !localFilePath
 
       // Check component is still mounted to avoid calling setState() on components that were quickly
       // mounted then unmounted before componentDidMount() finishes.
       // See: https://github.com/billmalarky/react-native-image-cache-hoc/issues/6#issuecomment-354490597
       if (this._isMounted && localFilePath) {
-        this.setState({ localFilePath });
+        this.setState({ localFilePath })
 
         if (!this.InvalidUrl && this.props.onLoadFinished) {
           Image.getSize(localFilePath, (width, height) => {
-            if (this._isMounted) {
-              this.props.onLoadFinished(width, height);
+            if (this._isMounted && this.props.onLoadFinished) {
+              this.props.onLoadFinished({ width, height })
             }
-          });
+          })
         }
       }
     }
 
     async componentWillUnmount() {
       // Track component mount status to avoid calling setState() on unmounted component.
-      this._isMounted = false;
+      this._isMounted = false
 
       // Remove component cache lock on associated image file on component teardown.
-      let fileName = await this.fileSystem.getFileNameFromUrl(
-        traverse(this.props).get(['source', 'uri'])
-      );
-      FileSystem.unlockCacheFile(fileName, this.componentId);
+      const fileName = await this.fileSystem.getFileNameFromUrl(
+        traverse(this.props).get(['source', 'uri']),
+      )
+      FileSystem.unlockCacheFile(fileName, this.componentId)
     }
 
     render() {
       // If media loaded, render full image component, else render placeholder.
       if (this.state.localFilePath && !this.InvalidUrl) {
         // Extract props proprietary to this HOC before passing props through.
-        let { permanent, ...filteredProps } = this.props; // eslint-disable-line no-unused-vars
+        const { permanent, ...filteredProps } = this.props // eslint-disable-line no-unused-vars
 
-        let props = Object.assign({}, filteredProps, {
+        const props = Object.assign({}, filteredProps, {
           source: { uri: this.state.localFilePath },
-        });
-        return <Image {...props} />;
+        })
+        return <Wrapped {...(props as P)} />
       } else {
         if (this.props.placeholder) {
-          return <this.props.placeholder.component {...this.props.placeholder.props} />;
+          return <this.props.placeholder.component {...this.props.placeholder.props} />
         } else if (this.options.defaultPlaceholder) {
           return (
             <this.options.defaultPlaceholder.component {...this.options.defaultPlaceholder.props} />
-          );
+          )
         } else {
-          return <Image style={this.props.style ? this.props.style : undefined} />;
+          return <Wrapped {...(this.props as P)} />
         }
       }
     }
-  };
+  }
 }
+
+export { imageCacheHoc, FileSystem, FileSystemFactory }

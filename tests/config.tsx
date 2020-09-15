@@ -1,15 +1,8 @@
-/**
- *
- * Mocked objects for testing.
- *
- */
+import * as ReactNative from 'react-native'
+import Adapter from 'enzyme-adapter-react-16'
+import Enzyme from 'enzyme'
 
-/* global jest */
-import * as ReactNative from 'react-native';
-import Adapter from 'enzyme-adapter-react-16';
-import Enzyme from 'enzyme';
-
-Enzyme.configure({ adapter: new Adapter() });
+Enzyme.configure({ adapter: new Adapter() })
 
 /**
  * Override native modules with mocks where necessary.
@@ -24,6 +17,6 @@ jest.doMock('react-native', () => {
         select: (objs) => objs['ios'],
       },
     },
-    ReactNative
-  );
-});
+    ReactNative,
+  )
+})

@@ -1,5 +1,4 @@
-/* global jest */
-const { mockData } = require('../mockData');
+import { mockData } from '../mockData'
 
 module.exports = {
   mkdir: jest.fn(),
@@ -89,4 +88,4 @@ module.exports = {
   TemporaryDirectoryPath: jest.fn(),
   LibraryDirectoryPath: jest.fn(),
   PicturesDirectoryPath: jest.fn(),
-};
+}
