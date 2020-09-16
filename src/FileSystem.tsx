@@ -393,6 +393,16 @@ export class FileSystem {
     }
   }
 
+  /**
+   * Gets a observable which emits when a url is resolved to a local file path
+   * A cache lock is required @see {lockCacheFile}
+   *
+   * @param url {String} - url of file to download.
+   * @param componentId {String} - Unique id of the requestor.
+   * @param permanent {Boolean} - True persists the file locally indefinitely, false caches the file temporarily (until file is removed during cache pruning).
+   * @param fileName {String} - defaults to a sha1 hash of the url param with extension of same filetype.
+   * @returns {Observable<CacheFileInfo>} observable that resolves to an object that contains the local path of the downloaded file and the filename.
+   */
   observable(
     url: string,
     componentId: string,
