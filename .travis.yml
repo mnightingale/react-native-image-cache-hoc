@@ -1,25 +1,8 @@
-
-#
-# Travis CI config
-# https://docs.travis-ci.com/user/customizing-the-build/
-#
-
-env:
-  - COVERALLS_ENV=production
-
-branches:
-  only:
-  - master
-
 language: node_js
-
 node_js:
-  - "7"
-
-cache:
-  directories:
-    - "node_modules"
-
+  - 12
+cache: yarn
 script:
-  - npm run lint
-  - npm test
+  - yarn lint
+  - yarn test --coverage
+  - codecov -f coverage/*.json
