@@ -95,7 +95,7 @@ describe('CacheableImage', function () {
 
   it('#cacheFile static method should work as expected for cache dir files.', () => {
     // Mock that file does not exist on local fs.
-    RNFS.exists.mockResolvedValue(false)
+    RNFS.exists.mockResolvedValueOnce(false).mockResolvedValueOnce(false)
 
     // Mock fetch result
 
@@ -117,7 +117,7 @@ describe('CacheableImage', function () {
 
   it('#cacheFile static method should work as expected for permanent dir files.', () => {
     // Mock that file does not exist on local fs.
-    RNFS.exists.mockResolvedValue(false)
+    RNFS.exists.mockResolvedValueOnce(false).mockResolvedValueOnce(false)
 
     // Mock fetch result
     RNFS.downloadFile.mockReturnValue({
@@ -268,9 +268,9 @@ describe('CacheableImage', function () {
     // See: https://github.com/billmalarky/react-native-image-cache-hoc/issues/6#issuecomment-354490597
     cacheableImage.setState = sinon.spy() // Mock setState with function tracker to ensure it doesn't get called on unmounted component.
     cacheableImage.componentDidMount()
-    cacheableImage._isMounted.should.be.true()
+    cacheableImage.unmounted$.value.should.be.false()
     cacheableImage.componentWillUnmount()
-    cacheableImage._isMounted.should.be.false()
+    cacheableImage.unmounted$.value.should.be.true()
 
     // Wait for componentDidMount() to complete execution.
     await new Promise((resolve) => {
@@ -281,39 +281,16 @@ describe('CacheableImage', function () {
     cacheableImage.setState.should.not.be.called()
   })
 
-  it('#_loadImage should warn developer on error getting local file path.', () => {
-    const CacheableImage = imageCacheHoc(Image)
-
-    const imageUrl =
-      'https://img.wennermedia.com/5333a62d-07db-432a-92e2-198cafa38a14-326adb1a-d8ed-4a5d-b37e-5c88883e1989.png'
-
-    const cacheableImage = new CacheableImage({
-      // eslint-disable-line no-unused-vars
-      source: {
-        uri: imageUrl,
-      },
-    })
-
-    const testError = new Error('Test error')
-
-    cacheableImage.fileSystem.getLocalFilePathFromUrl = () => {
-      throw testError
-    }
-
-    // Cache console.warn
-    const consoleWarnCache = console.warn // eslint-disable-line no-console
-
-    console.warn = sinon.spy() // eslint-disable-line no-console
-
-    cacheableImage._loadImage(imageUrl)
-
-    console.warn.should.be.calledWithExactly(testError) // eslint-disable-line no-console
-
-    // Re-apply console.warn
-    console.warn = consoleWarnCache // eslint-disable-line no-console
-  })
-
   it('componentDidUpdate should not throw any uncaught errors.', (done) => {
+    // Mock that file does not exist on local fs.
+    RNFS.exists
+      .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(false)
+
     RNFS.downloadFile
       .mockReturnValueOnce({
         promise: Promise.resolve({ statusCode: 200 }),
@@ -346,6 +323,8 @@ describe('CacheableImage', function () {
   })
 
   it('#render with valid props does not throw an error.', (done) => {
+    RNFS.exists.mockResolvedValueOnce(false) // mock not exist in local permanent dir
+
     const CacheableImage = imageCacheHoc(Image)
 
     const wrapper = shallow(<CacheableImage {...mockData.mockCacheableImageProps} />)

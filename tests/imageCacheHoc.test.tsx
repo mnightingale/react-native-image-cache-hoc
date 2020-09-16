@@ -13,7 +13,6 @@ describe('CacheableImage', function () {
       .mockResolvedValueOnce(false) // mock not exist in local permanent dir
       .mockResolvedValueOnce(false) // mock not exist in local cache dir
       .mockResolvedValueOnce(false) // mock does not exist to get past clobber
-      .mockResolvedValue(true)
 
     RNFS.downloadFile.mockReturnValue({
       promise: Promise.resolve({ statusCode: 200 }),
@@ -51,7 +50,6 @@ describe('CacheableImage', function () {
       .mockResolvedValueOnce(false) // mock not exist in local permanent dir
       .mockResolvedValueOnce(false) // mock not exist in local cache dir
       .mockResolvedValueOnce(false) // mock does not exist to get past clobber
-      .mockResolvedValue(true)
 
     RNFS.downloadFile.mockReturnValue({
       promise: Promise.resolve({ statusCode: 200 }),
@@ -96,7 +94,6 @@ describe('CacheableImage', function () {
       .mockResolvedValueOnce(false) // mock not exist in local permanent dir
       .mockResolvedValueOnce(false) // mock not exist in local cache dir
       .mockResolvedValueOnce(false) // mock does not exist to get past clobber
-      .mockResolvedValue(true)
 
     RNFS.downloadFile.mockReturnValue({
       promise: Promise.resolve({ statusCode: 200 }),
