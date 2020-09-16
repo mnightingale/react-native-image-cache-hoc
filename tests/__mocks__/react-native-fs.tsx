@@ -9,7 +9,7 @@ module.exports = {
   getFSInfo: jest.fn(),
   getAllExternalFilesDirs: jest.fn(),
   unlink: jest.fn(),
-  exists: jest.fn(),
+  exists: jest.fn().mockResolvedValue(true),
   stopDownload: jest.fn(),
   resumeDownload: jest.fn(),
   isResumable: jest.fn(),

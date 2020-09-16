@@ -16,11 +16,13 @@
 // Load dependencies.
 import React from 'react'
 import PropTypes from 'prop-types'
-import FileSystemFactory, { FileSystem } from './FileSystem'
+import FileSystemFactory, { CacheFileInfo, FileSystem } from './FileSystem'
 import traverse from 'traverse'
 import validator from 'validator'
 import uuid from 'react-native-uuid'
 import { Image, ImageStyle, StyleProp } from 'react-native'
+import { BehaviorSubject, Subscription } from 'rxjs'
+import { skip, takeUntil } from 'rxjs/operators'
 
 export type Source = {
   uri?: string
@@ -99,10 +101,10 @@ const imageCacheHoc = <P extends object>(
     }
 
     componentId: any
-    _isMounted: boolean
+    unmounted$: BehaviorSubject<boolean>
     options: Required<ReactNativeImageCacheHocOptions>
     fileSystem: FileSystem
-    InvalidUrl: boolean
+    subscription?: Subscription
 
     /**
      *
@@ -162,14 +164,14 @@ const imageCacheHoc = <P extends object>(
         options.cachePruneTriggerLimit || null,
         options.fileDirName || null,
       )
-      const results = await Promise.all([
+      const [permanentDirFlushed, cacheDirFlushed] = await Promise.all([
         fileSystem.unlink('permanent'),
         fileSystem.unlink('cache'),
       ])
 
       return {
-        permanentDirFlushed: results[0],
-        cacheDirFlushed: results[1],
+        permanentDirFlushed,
+        cacheDirFlushed,
       }
     }
 
@@ -185,7 +187,7 @@ const imageCacheHoc = <P extends object>(
       this.componentId = uuid.v4()
 
       // Track component mount status to avoid calling setState() on unmounted component.
-      this._isMounted = false
+      this.unmounted$ = new BehaviorSubject<boolean>(true)
 
       // Set default options
       this.options = {
@@ -203,7 +205,7 @@ const imageCacheHoc = <P extends object>(
       )
 
       // Validate input
-      this.InvalidUrl = !this._validateImageComponent()
+      this._validateImageComponent()
     }
 
     _validateImageComponent() {
@@ -233,19 +235,22 @@ const imageCacheHoc = <P extends object>(
 
     // Async calls to local FS or network should occur here.
     // See: https://reactjs.org/docs/react-component.html#componentdidmount
-    async componentDidMount() {
+    componentDidMount() {
       // Track component mount status to avoid calling setState() on unmounted component.
-      this._isMounted = true
+      this.unmounted$.next(false)
 
       // Set url from source prop
       const url = traverse(this.props).get(['source', 'uri'])
 
       // Add a cache lock to file with this name (prevents concurrent <CacheableImage> components from pruning a file with this name from cache).
-      const fileName = await this.fileSystem.getFileNameFromUrl(url)
+      const fileName = this.fileSystem.getFileNameFromUrl(url)
       FileSystem.lockCacheFile(fileName, this.componentId)
 
       // Init the image cache logic
-      await this._loadImage(url)
+      this.subscription = this.fileSystem
+        .observable(url, this.componentId)
+        .pipe(takeUntil(this.unmounted$.pipe(skip(1))))
+        .subscribe((info) => this.onSourceLoaded(info))
     }
 
     /**
@@ -255,7 +260,7 @@ const imageCacheHoc = <P extends object>(
      *
      * @param prevProps {Object} - Previous props.
      */
-    async componentDidUpdate(prevProps: ReactNativeImageCacheHocProps) {
+    componentDidUpdate(prevProps: ReactNativeImageCacheHocProps) {
       // Set urls from source prop data
       const url = traverse(prevProps).get(['source', 'uri'])
       const nextUrl = traverse(this.props).get(['source', 'uri'])
@@ -264,73 +269,48 @@ const imageCacheHoc = <P extends object>(
       if (url === nextUrl) return
 
       // Remove component cache lock on old image file, and add cache lock to new image file.
-      const fileName = await this.fileSystem.getFileNameFromUrl(url)
-      const nextFileName = await this.fileSystem.getFileNameFromUrl(nextUrl)
+      const fileName = this.fileSystem.getFileNameFromUrl(url)
+      const nextFileName = this.fileSystem.getFileNameFromUrl(nextUrl)
 
       FileSystem.unlockCacheFile(fileName, this.componentId)
       FileSystem.lockCacheFile(nextFileName, this.componentId)
 
-      this.InvalidUrl = !this._validateImageComponent()
+      this._validateImageComponent()
 
       // Init the image cache logic
-      await this._loadImage(nextUrl)
+      this.subscription?.unsubscribe()
+      this.subscription = this.fileSystem
+        .observable(nextUrl, this.componentId)
+        .pipe(takeUntil(this.unmounted$.pipe(skip(1))))
+        .subscribe((info) => this.onSourceLoaded(info))
     }
 
-    /**
-     *
-     * Executes the image download/cache logic and calls setState() with to re-render
-     * component using local file path on completion.
-     *
-     * @param url {String} - The remote image url.
-     * @private
-     */
-    async _loadImage(url: string) {
-      if (this.InvalidUrl) {
-        this.setState({ localFilePath: null })
-        return
-      }
-
-      // Check local fs for file, fallback to network and write file to disk if local file not found.
-      const permanent = this.props.permanent ? true : false
-      let localFilePath = null
-      try {
-        localFilePath = await this.fileSystem.getLocalFilePathFromUrl(url, permanent)
-      } catch (error) {
-        console.warn(error) // eslint-disable-line no-console
-      }
-
-      this.InvalidUrl = !localFilePath
-
-      // Check component is still mounted to avoid calling setState() on components that were quickly
-      // mounted then unmounted before componentDidMount() finishes.
-      // See: https://github.com/billmalarky/react-native-image-cache-hoc/issues/6#issuecomment-354490597
-      if (this._isMounted && localFilePath) {
-        this.setState({ localFilePath })
-
-        if (!this.InvalidUrl && this.props.onLoadFinished) {
-          Image.getSize(localFilePath, (width, height) => {
-            if (this._isMounted && this.props.onLoadFinished) {
-              this.props.onLoadFinished({ width, height })
-            }
-          })
-        }
-      }
-    }
-
-    async componentWillUnmount() {
+    componentWillUnmount() {
       // Track component mount status to avoid calling setState() on unmounted component.
-      this._isMounted = false
+      this.unmounted$.next(true)
 
       // Remove component cache lock on associated image file on component teardown.
-      const fileName = await this.fileSystem.getFileNameFromUrl(
+      const fileName = this.fileSystem.getFileNameFromUrl(
         traverse(this.props).get(['source', 'uri']),
       )
       FileSystem.unlockCacheFile(fileName, this.componentId)
     }
 
+    onSourceLoaded({ path }: CacheFileInfo) {
+      this.setState({ localFilePath: path })
+
+      if (path && this.props.onLoadFinished) {
+        Image.getSize(path, (width, height) => {
+          if (!this.unmounted$.value && this.props.onLoadFinished) {
+            this.props.onLoadFinished({ width, height })
+          }
+        })
+      }
+    }
+
     render() {
       // If media loaded, render full image component, else render placeholder.
-      if (this.state.localFilePath && !this.InvalidUrl) {
+      if (this.state.localFilePath) {
         // Extract props proprietary to this HOC before passing props through.
         const { permanent, ...filteredProps } = this.props // eslint-disable-line no-unused-vars
 
