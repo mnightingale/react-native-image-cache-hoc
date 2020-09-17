@@ -105,6 +105,7 @@ const imageCacheHoc = <P extends object>(
     options: Required<ReactNativeImageCacheHocOptions>
     fileSystem: FileSystem
     subscription?: Subscription
+    invalidUrl: boolean
 
     /**
      *
@@ -205,7 +206,7 @@ const imageCacheHoc = <P extends object>(
       )
 
       // Validate input
-      this._validateImageComponent()
+      this.invalidUrl = !this._validateImageComponent()
     }
 
     _validateImageComponent() {
@@ -225,9 +226,10 @@ const imageCacheHoc = <P extends object>(
         !traverse(this.props).get(['source', 'uri']) ||
         !validator.isURL(traverse(this.props).get(['source', 'uri']), validatorUrlOptions)
       ) {
-        throw new Error(
+        console.warn(
           'Invalid source prop. <CacheableImage> props.source.uri should be a web accessible url with a valid protocol and host. NOTE: Default valid protocol is https, default valid hosts are *.',
         )
+        return false
       } else {
         return true
       }
@@ -247,10 +249,12 @@ const imageCacheHoc = <P extends object>(
       FileSystem.lockCacheFile(fileName, this.componentId)
 
       // Init the image cache logic
-      this.subscription = this.fileSystem
-        .observable(url, this.componentId)
-        .pipe(takeUntil(this.unmounted$.pipe(skip(1))))
-        .subscribe((info) => this.onSourceLoaded(info))
+      if (!this.invalidUrl) {
+        this.subscription = this.fileSystem
+          .observable(url, this.componentId)
+          .pipe(takeUntil(this.unmounted$.pipe(skip(1))))
+          .subscribe((info) => this.onSourceLoaded(info))
+      }
     }
 
     /**
@@ -275,14 +279,16 @@ const imageCacheHoc = <P extends object>(
       FileSystem.unlockCacheFile(fileName, this.componentId)
       FileSystem.lockCacheFile(nextFileName, this.componentId)
 
-      this._validateImageComponent()
+      this.invalidUrl = !this._validateImageComponent()
 
       // Init the image cache logic
       this.subscription?.unsubscribe()
-      this.subscription = this.fileSystem
-        .observable(nextUrl, this.componentId)
-        .pipe(takeUntil(this.unmounted$.pipe(skip(1))))
-        .subscribe((info) => this.onSourceLoaded(info))
+      if (!this.invalidUrl) {
+        this.subscription = this.fileSystem
+          .observable(nextUrl, this.componentId)
+          .pipe(takeUntil(this.unmounted$.pipe(skip(1))))
+          .subscribe((info) => this.onSourceLoaded(info))
+      }
     }
 
     componentWillUnmount() {
@@ -298,6 +304,7 @@ const imageCacheHoc = <P extends object>(
 
     onSourceLoaded({ path }: CacheFileInfo) {
       this.setState({ localFilePath: path })
+      this.invalidUrl = path === null
 
       if (path && this.props.onLoadFinished) {
         Image.getSize(path, (width, height) => {
@@ -310,9 +317,9 @@ const imageCacheHoc = <P extends object>(
 
     render() {
       // If media loaded, render full image component, else render placeholder.
-      if (this.state.localFilePath) {
+      if (this.state.localFilePath && !this.invalidUrl) {
         // Extract props proprietary to this HOC before passing props through.
-        const { permanent, ...filteredProps } = this.props // eslint-disable-line no-unused-vars
+        const { permanent, ...filteredProps } = this.props
 
         const props = Object.assign({}, filteredProps, {
           source: { uri: this.state.localFilePath },
@@ -326,7 +333,10 @@ const imageCacheHoc = <P extends object>(
             <this.options.defaultPlaceholder.component {...this.options.defaultPlaceholder.props} />
           )
         } else {
-          return <Wrapped {...(this.props as P)} />
+          // Extract props proprietary to this HOC before passing props through.
+          const { permanent, source, ...filteredProps } = this.props
+
+          return <Wrapped {...(filteredProps as P)} />
         }
       }
     }

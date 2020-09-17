@@ -9,6 +9,9 @@ import { shallow } from 'enzyme'
 import React from 'react'
 
 describe('CacheableImage', function () {
+  const originalWarn = console.warn
+  afterEach(() => (console.warn = originalWarn))
+
   it('HOC options validation should work as expected.', () => {
     // Check validation is catching bad option input.
     try {
@@ -174,26 +177,22 @@ describe('CacheableImage', function () {
   })
 
   it('#_validateImageComponent should validate bad component props correctly.', () => {
+    const consoleOutput = []
+    console.warn = (output) => consoleOutput.push(output)
+
     // Verify source uri prop only accepts web accessible urls.
 
     const CacheableImage = imageCacheHoc(Image)
 
-    try {
-      // eslint-disable-next-line no-unused-vars
-      const cacheableImage = new CacheableImage({
-        source: {
-          uri: './local-file.jpg',
-        },
-      })
+    new CacheableImage({
+      source: {
+        uri: './local-file.jpg',
+      },
+    })
 
-      throw new Error('Invalid source uri prop was accepted.')
-    } catch (error) {
-      error.should.deepEqual(
-        new Error(
-          'Invalid source prop. <CacheableImage> props.source.uri should be a web accessible url with a valid protocol and host. NOTE: Default valid protocol is https, default valid hosts are *.',
-        ),
-      )
-    }
+    expect(consoleOutput).toEqual([
+      'Invalid source prop. <CacheableImage> props.source.uri should be a web accessible url with a valid protocol and host. NOTE: Default valid protocol is https, default valid hosts are *.',
+    ])
 
     // Verify source uri prop only accepts web accessible urls from whitelist if whitelist set.
 
@@ -201,23 +200,17 @@ describe('CacheableImage', function () {
       fileHostWhitelist: ['i.redd.it'],
     })
 
-    try {
-      // eslint-disable-next-line no-unused-vars
-      const cacheableImageWithOpts = new CacheableImageWithOpts({
-        source: {
-          uri:
-            'https://www.google.com/logos/doodles/2017/day-of-the-dead-2017-6241959625621504-l.png',
-        },
-      })
+    new CacheableImageWithOpts({
+      source: {
+        uri:
+          'https://www.google.com/logos/doodles/2017/day-of-the-dead-2017-6241959625621504-l.png',
+      },
+    })
 
-      throw new Error('Invalid source uri prop was accepted.')
-    } catch (error) {
-      error.should.deepEqual(
-        new Error(
-          'Invalid source prop. <CacheableImage> props.source.uri should be a web accessible url with a valid protocol and host. NOTE: Default valid protocol is https, default valid hosts are *.',
-        ),
-      )
-    }
+    expect(consoleOutput).toEqual([
+      'Invalid source prop. <CacheableImage> props.source.uri should be a web accessible url with a valid protocol and host. NOTE: Default valid protocol is https, default valid hosts are *.',
+      'Invalid source prop. <CacheableImage> props.source.uri should be a web accessible url with a valid protocol and host. NOTE: Default valid protocol is https, default valid hosts are *.',
+    ])
 
     // Verify source uri prop only accepts web accessible urls from correct protocols if protocol list set.
 
@@ -225,23 +218,18 @@ describe('CacheableImage', function () {
       validProtocols: ['http'],
     })
 
-    try {
-      // eslint-disable-next-line no-unused-vars
-      const cacheableImageWithProtocolOpts = new CacheableImageWithProtocolOpts({
-        source: {
-          uri:
-            'https://www.google.com/logos/doodles/2017/day-of-the-dead-2017-6241959625621504-l.png',
-        },
-      })
+    new CacheableImageWithProtocolOpts({
+      source: {
+        uri:
+          'https://www.google.com/logos/doodles/2017/day-of-the-dead-2017-6241959625621504-l.png',
+      },
+    })
 
-      throw new Error('Invalid source uri prop was accepted.')
-    } catch (error) {
-      error.should.deepEqual(
-        new Error(
-          'Invalid source prop. <CacheableImage> props.source.uri should be a web accessible url with a valid protocol and host. NOTE: Default valid protocol is https, default valid hosts are *.',
-        ),
-      )
-    }
+    expect(consoleOutput).toEqual([
+      'Invalid source prop. <CacheableImage> props.source.uri should be a web accessible url with a valid protocol and host. NOTE: Default valid protocol is https, default valid hosts are *.',
+      'Invalid source prop. <CacheableImage> props.source.uri should be a web accessible url with a valid protocol and host. NOTE: Default valid protocol is https, default valid hosts are *.',
+      'Invalid source prop. <CacheableImage> props.source.uri should be a web accessible url with a valid protocol and host. NOTE: Default valid protocol is https, default valid hosts are *.',
+    ])
   })
 
   it('Verify component is actually still mounted before calling setState() in componentDidMount().', async () => {
