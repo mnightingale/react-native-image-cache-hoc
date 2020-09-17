@@ -13,4 +13,4 @@ export const mockData = {
     },
     permanent: false,
   },
-};
+}
