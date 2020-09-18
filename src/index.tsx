@@ -243,6 +243,7 @@ const imageCacheHoc = <P extends object>(
 
       // Set url from source prop
       const url = traverse(this.props).get(['source', 'uri'])
+      const permanent = this.props.permanent ? true : false
 
       // Add a cache lock to file with this name (prevents concurrent <CacheableImage> components from pruning a file with this name from cache).
       const fileName = this.fileSystem.getFileNameFromUrl(url)
@@ -251,7 +252,7 @@ const imageCacheHoc = <P extends object>(
       // Init the image cache logic
       if (!this.invalidUrl) {
         this.subscription = this.fileSystem
-          .observable(url, this.componentId)
+          .observable(url, this.componentId, permanent)
           .pipe(takeUntil(this.unmounted$.pipe(skip(1))))
           .subscribe((info) => this.onSourceLoaded(info))
       }
@@ -280,12 +281,13 @@ const imageCacheHoc = <P extends object>(
       FileSystem.lockCacheFile(nextFileName, this.componentId)
 
       this.invalidUrl = !this._validateImageComponent()
+      const permanent = this.props.permanent ? true : false
 
       // Init the image cache logic
       this.subscription?.unsubscribe()
       if (!this.invalidUrl) {
         this.subscription = this.fileSystem
-          .observable(nextUrl, this.componentId)
+          .observable(nextUrl, this.componentId, permanent)
           .pipe(takeUntil(this.unmounted$.pipe(skip(1))))
           .subscribe((info) => this.onSourceLoaded(info))
       }
