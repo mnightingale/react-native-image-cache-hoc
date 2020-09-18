@@ -113,7 +113,7 @@ describe('CacheableImage', function () {
         url: 'https://i.redd.it/rc29s4bz61uz.png',
         cacheType: 'cache',
         localFilePath:
-          '/base/file/path/react-native-image-cache-hoc/cache/d3b74e9fa8248a5805e2dcf17a8577acd28c089b.png',
+          'file:///base/file/path/react-native-image-cache-hoc/cache/d3b74e9fa8248a5805e2dcf17a8577acd28c089b.png',
       })
     })
   })
@@ -134,7 +134,7 @@ describe('CacheableImage', function () {
         url: 'https://i.redd.it/rc29s4bz61uz.png',
         cacheType: 'permanent',
         localFilePath:
-          '/base/file/path/react-native-image-cache-hoc/permanent/d3b74e9fa8248a5805e2dcf17a8577acd28c089b.png',
+          'file:///base/file/path/react-native-image-cache-hoc/permanent/d3b74e9fa8248a5805e2dcf17a8577acd28c089b.png',
       })
     })
   })
@@ -294,7 +294,7 @@ describe('CacheableImage', function () {
     setImmediate(() => {
       expect(wrapper.prop('source')).toStrictEqual({
         uri:
-          '/base/file/path/react-native-image-cache-hoc/cache/d3b74e9fa8248a5805e2dcf17a8577acd28c089b.png',
+          'file:///base/file/path/react-native-image-cache-hoc/cache/d3b74e9fa8248a5805e2dcf17a8577acd28c089b.png',
       })
 
       wrapper.setProps({ source: { uri: 'https://example.com/B.jpg' } })
@@ -302,7 +302,7 @@ describe('CacheableImage', function () {
       setImmediate(() => {
         expect(wrapper.prop('source')).toStrictEqual({
           uri:
-            '/base/file/path/react-native-image-cache-hoc/cache/a940ee9ea388fcea7628d9a64dfac6a698aa0228.jpg',
+            'file:///base/file/path/react-native-image-cache-hoc/cache/a940ee9ea388fcea7628d9a64dfac6a698aa0228.jpg',
         })
 
         done()
@@ -320,7 +320,7 @@ describe('CacheableImage', function () {
     setImmediate(() => {
       expect(wrapper.prop('source')).toStrictEqual({
         uri:
-          '/base/file/path/react-native-image-cache-hoc/cache/d3b74e9fa8248a5805e2dcf17a8577acd28c089b.png',
+          'file:///base/file/path/react-native-image-cache-hoc/cache/d3b74e9fa8248a5805e2dcf17a8577acd28c089b.png',
       })
 
       wrapper.setState({ localFilePath: './test.jpg' })

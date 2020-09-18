@@ -38,7 +38,7 @@ describe('CacheableImage', function () {
     setImmediate(() => {
       expect(wrapper.prop('source')).toStrictEqual({
         uri:
-          '/base/file/path/react-native-image-cache-hoc/cache/d3b74e9fa8248a5805e2dcf17a8577acd28c089b.png',
+          'file:///base/file/path/react-native-image-cache-hoc/cache/d3b74e9fa8248a5805e2dcf17a8577acd28c089b.png',
       })
       done()
     })

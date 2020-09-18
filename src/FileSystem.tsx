@@ -314,7 +314,7 @@ export class FileSystem {
           throw new Error('Request failed ' + downloadResult.statusCode)
         }
         return {
-          path: Platform.OS === 'android' ? 'file://' + path : path,
+          path: 'file://' + path,
           fileName: pathLib.basename(path),
         }
       }),
@@ -434,20 +434,12 @@ export class FileSystem {
           // Check caches
           if (existsPermanent) {
             return of({
-              path:
-                (Platform.OS === 'android' ? 'file://' : '') +
-                this.baseFilePath +
-                'permanent/' +
-                fileName,
+              path: 'file://' + this.baseFilePath + 'permanent/' + fileName,
               fileName,
             } as CacheFileInfo)
           } else if (existsCache) {
             return of({
-              path:
-                (Platform.OS === 'android' ? 'file://' : '') +
-                this.baseFilePath +
-                'cache/' +
-                fileName,
+              path: 'file://' + this.baseFilePath + 'cache/' + fileName,
               fileName,
             } as CacheFileInfo)
           }

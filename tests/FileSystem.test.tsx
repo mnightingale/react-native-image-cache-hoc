@@ -152,7 +152,8 @@ describe('FileSystem', function () {
       )
       .then((localFilePath) => {
         localFilePath.should.equal(
-          mockData.basePath +
+          'file://' +
+            mockData.basePath +
             '/react-native-image-cache-hoc/permanent/cd7d2199cd8e088cdfd9c99fc6359666adc36289.png',
         )
       })
@@ -169,7 +170,8 @@ describe('FileSystem', function () {
       )
       .then((localFilePath) => {
         localFilePath.should.equal(
-          mockData.basePath +
+          'file://' +
+            mockData.basePath +
             '/react-native-image-cache-hoc/cache/cd7d2199cd8e088cdfd9c99fc6359666adc36289.png',
         )
       })
@@ -193,7 +195,7 @@ describe('FileSystem', function () {
       )
       .then((localFilePath) => {
         localFilePath.should.equal(
-          '/base/file/path/react-native-image-cache-hoc/cache/cd7d2199cd8e088cdfd9c99fc6359666adc36289.png',
+          'file:///base/file/path/react-native-image-cache-hoc/cache/cd7d2199cd8e088cdfd9c99fc6359666adc36289.png',
         )
       })
   })
@@ -310,7 +312,7 @@ describe('FileSystem', function () {
       .subscribe((result) => {
         result.should.deepEqual({
           path:
-            '/base/file/path/react-native-image-cache-hoc/cache/cd7d2199cd8e088cdfd9c99fc6359666adc36289.png',
+            'file:///base/file/path/react-native-image-cache-hoc/cache/cd7d2199cd8e088cdfd9c99fc6359666adc36289.png',
           fileName: 'cd7d2199cd8e088cdfd9c99fc6359666adc36289.png',
         })
         done()
