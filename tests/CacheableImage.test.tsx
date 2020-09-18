@@ -100,12 +100,6 @@ describe('CacheableImage', function () {
     // Mock that file does not exist on local fs.
     RNFS.exists.mockResolvedValueOnce(false).mockResolvedValueOnce(false)
 
-    // Mock fetch result
-
-    RNFS.downloadFile.mockReturnValue({
-      promise: Promise.resolve({ statusCode: 200 }),
-    })
-
     const CacheableImage = imageCacheHoc(Image)
 
     return CacheableImage.cacheFile('https://i.redd.it/rc29s4bz61uz.png').then((result) => {
@@ -121,11 +115,6 @@ describe('CacheableImage', function () {
   it('#cacheFile static method should work as expected for permanent dir files.', () => {
     // Mock that file does not exist on local fs.
     RNFS.exists.mockResolvedValueOnce(false).mockResolvedValueOnce(false)
-
-    // Mock fetch result
-    RNFS.downloadFile.mockReturnValue({
-      promise: Promise.resolve({ statusCode: 200 }),
-    })
 
     const CacheableImage = imageCacheHoc(Image)
 

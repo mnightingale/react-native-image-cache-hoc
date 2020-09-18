@@ -183,10 +183,6 @@ describe('FileSystem', function () {
       .mockResolvedValueOnce(false) // mock not exist in local cache dir
       .mockResolvedValueOnce(false) // mock does not exist to get past clobber
 
-    RNFS.downloadFile.mockReturnValue({
-      promise: Promise.resolve({ statusCode: 200 }),
-    })
-
     const fileSystem = FileSystemFactory()
 
     return fileSystem
@@ -220,10 +216,6 @@ describe('FileSystem', function () {
   it('#fetchFile clobber safeguard should work.', (done) => {
     const fileSystem = FileSystemFactory()
 
-    RNFS.downloadFile.mockReturnValue({
-      promise: Promise.resolve({ statusCode: 200 }),
-    })
-
     // fileSystem.exists() is mocked to always return true, so error should always be thrown unless clobber is set to true.
     fileSystem
       .fetchFile(
@@ -237,10 +229,6 @@ describe('FileSystem', function () {
 
   it('#fetchFile prune logic should not be called on permanent writes.', (done) => {
     const fileSystem = FileSystemFactory()
-
-    RNFS.downloadFile.mockReturnValue({
-      promise: Promise.resolve({ statusCode: 200 }),
-    })
 
     let pruneCacheHit = false
 
@@ -266,10 +254,6 @@ describe('FileSystem', function () {
   it('#fetchFile prune logic should be called on cache writes.', (done) => {
     const fileSystem = FileSystemFactory()
 
-    RNFS.downloadFile.mockReturnValue({
-      promise: Promise.resolve({ statusCode: 200 }),
-    })
-
     let pruneCacheHit = false
 
     // Mock fileSystem.pruneCache() to determine if it is called correctly.
@@ -293,10 +277,6 @@ describe('FileSystem', function () {
 
   it('#fetchFile should work as expected.', (done) => {
     const fileSystem = FileSystemFactory()
-
-    RNFS.downloadFile.mockReturnValue({
-      promise: Promise.resolve({ statusCode: 200 }),
-    })
 
     // Mock fileSystem.pruneCache().
     fileSystem.pruneCache = async () => {}
