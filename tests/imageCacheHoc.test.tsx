@@ -34,7 +34,7 @@ describe('CacheableImage', function () {
     setImmediate(() => {
       expect(wrapper.prop('source')).toStrictEqual({
         uri:
-          'file:///base/file/path/react-native-image-cache-hoc/cache/d3b74e9fa8248a5805e2dcf17a8577acd28c089b.png',
+          'file:///base/file/path/react-native-image-cache-hoc/d3b74e9fa8248a5805e2dcf17a8577acd28c089b.png',
       })
       done()
     })
@@ -43,7 +43,6 @@ describe('CacheableImage', function () {
   it('renders correctly with placeholder prop set', () => {
     //Mock values for local/remote file request logic.
     RNFS.exists
-      .mockResolvedValueOnce(false) // mock not exist in local permanent dir
       .mockResolvedValueOnce(false) // mock not exist in local cache dir
       .mockResolvedValueOnce(false) // mock does not exist to get past clobber
 
@@ -83,7 +82,6 @@ describe('CacheableImage', function () {
   it('renders correctly with placeholder option set', () => {
     //Mock values for local/remote file request logic.
     RNFS.exists
-      .mockResolvedValueOnce(false) // mock not exist in local permanent dir
       .mockResolvedValueOnce(false) // mock not exist in local cache dir
       .mockResolvedValueOnce(false) // mock does not exist to get past clobber
 

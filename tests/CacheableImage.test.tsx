@@ -89,7 +89,6 @@ describe('CacheableImage', function () {
     Object.keys(CacheableImage.propTypes).should.deepEqual([
       'fileHostWhitelist',
       'source',
-      'permanent',
       'style',
       'placeholder',
       'onLoadFinished',
@@ -97,33 +96,13 @@ describe('CacheableImage', function () {
   })
 
   it('#cacheFile static method should work as expected for cache dir files.', () => {
-    // Mock that file does not exist on local fs.
-    RNFS.exists.mockResolvedValueOnce(false).mockResolvedValueOnce(false)
-
     const CacheableImage = imageCacheHoc(Image)
 
     return CacheableImage.cacheFile('https://i.redd.it/rc29s4bz61uz.png').then((result) => {
       result.should.deepEqual({
         url: 'https://i.redd.it/rc29s4bz61uz.png',
-        cacheType: 'cache',
         localFilePath:
-          'file:///base/file/path/react-native-image-cache-hoc/cache/d3b74e9fa8248a5805e2dcf17a8577acd28c089b.png',
-      })
-    })
-  })
-
-  it('#cacheFile static method should work as expected for permanent dir files.', () => {
-    // Mock that file does not exist on local fs.
-    RNFS.exists.mockResolvedValueOnce(false).mockResolvedValueOnce(false)
-
-    const CacheableImage = imageCacheHoc(Image)
-
-    return CacheableImage.cacheFile('https://i.redd.it/rc29s4bz61uz.png', true).then((result) => {
-      result.should.deepEqual({
-        url: 'https://i.redd.it/rc29s4bz61uz.png',
-        cacheType: 'permanent',
-        localFilePath:
-          'file:///base/file/path/react-native-image-cache-hoc/permanent/d3b74e9fa8248a5805e2dcf17a8577acd28c089b.png',
+          'file:///base/file/path/react-native-image-cache-hoc/d3b74e9fa8248a5805e2dcf17a8577acd28c089b.png',
       })
     })
   })
@@ -134,12 +113,7 @@ describe('CacheableImage', function () {
 
     const CacheableImage = imageCacheHoc(Image)
 
-    return CacheableImage.flush().then((result) => {
-      result.should.deepEqual({
-        permanentDirFlushed: true,
-        cacheDirFlushed: true,
-      })
-    })
+    expect(CacheableImage.flush()).resolves.toBe(true)
   })
 
   it('#constructor should initialize class object properties correctly.', () => {
@@ -230,7 +204,7 @@ describe('CacheableImage', function () {
         setTimeout(() => {
           resolve(
             mockData.basePath +
-              '/react-native-image-cache-hoc/permanent/cd7d2199cd8e088cdfd9c99fc6359666adc36289.png',
+              '/react-native-image-cache-hoc/cd7d2199cd8e088cdfd9c99fc6359666adc36289.png',
           )
         }, 1000) // Mock 1 second delay for this async function to complete.
       }),
@@ -259,15 +233,6 @@ describe('CacheableImage', function () {
   })
 
   it('componentDidUpdate should not throw any uncaught errors.', (done) => {
-    // Mock that file does not exist on local fs.
-    RNFS.exists
-      .mockResolvedValueOnce(false)
-      .mockResolvedValueOnce(false)
-      .mockResolvedValueOnce(false)
-      .mockResolvedValueOnce(false)
-      .mockResolvedValueOnce(false)
-      .mockResolvedValueOnce(false)
-
     RNFS.downloadFile
       .mockReturnValueOnce({
         promise: Promise.resolve({ statusCode: 200 }),
@@ -283,7 +248,7 @@ describe('CacheableImage', function () {
     setImmediate(() => {
       expect(wrapper.prop('source')).toStrictEqual({
         uri:
-          'file:///base/file/path/react-native-image-cache-hoc/cache/d3b74e9fa8248a5805e2dcf17a8577acd28c089b.png',
+          'file:///base/file/path/react-native-image-cache-hoc/d3b74e9fa8248a5805e2dcf17a8577acd28c089b.png',
       })
 
       wrapper.setProps({ source: { uri: 'https://example.com/B.jpg' } })
@@ -291,7 +256,7 @@ describe('CacheableImage', function () {
       setImmediate(() => {
         expect(wrapper.prop('source')).toStrictEqual({
           uri:
-            'file:///base/file/path/react-native-image-cache-hoc/cache/a940ee9ea388fcea7628d9a64dfac6a698aa0228.jpg',
+            'file:///base/file/path/react-native-image-cache-hoc/a940ee9ea388fcea7628d9a64dfac6a698aa0228.jpg',
         })
 
         done()
@@ -300,8 +265,6 @@ describe('CacheableImage', function () {
   })
 
   it('#render with valid props does not throw an error.', (done) => {
-    RNFS.exists.mockResolvedValueOnce(false) // mock not exist in local permanent dir
-
     const CacheableImage = imageCacheHoc(Image)
 
     const wrapper = shallow(<CacheableImage {...mockData.mockCacheableImageProps} />)
@@ -309,7 +272,7 @@ describe('CacheableImage', function () {
     setImmediate(() => {
       expect(wrapper.prop('source')).toStrictEqual({
         uri:
-          'file:///base/file/path/react-native-image-cache-hoc/cache/d3b74e9fa8248a5805e2dcf17a8577acd28c089b.png',
+          'file:///base/file/path/react-native-image-cache-hoc/d3b74e9fa8248a5805e2dcf17a8577acd28c089b.png',
       })
 
       wrapper.setState({ localFilePath: './test.jpg' })

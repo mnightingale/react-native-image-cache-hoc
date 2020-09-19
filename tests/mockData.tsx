@@ -11,6 +11,5 @@ export const mockData = {
     source: {
       uri: 'https://i.redd.it/rc29s4bz61uz.png',
     },
-    permanent: false,
   },
 }
