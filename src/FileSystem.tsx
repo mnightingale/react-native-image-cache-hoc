@@ -12,7 +12,7 @@ import pathLib from 'path'
 import RNFS from 'react-native-fs'
 import sha1 from 'crypto-js/sha1'
 import URL from 'url-parse'
-import { forkJoin, from, Observable, of, throwError } from 'rxjs'
+import { from, Observable, of } from 'rxjs'
 import {
   switchMap,
   catchError,
@@ -21,9 +21,12 @@ import {
   refCount,
   mergeMap,
   map,
+  filter,
   delayWhen,
+  concatAll,
 } from 'rxjs/operators'
 import uuid from 'react-native-uuid'
+import { CacheStrategy } from '.'
 
 export interface CacheFileInfo {
   path: string | null
@@ -147,11 +150,12 @@ export class FileSystem {
    * @private
    */
   _validatePath(path: string, absolute = false) {
-    const resolvedPath = absolute
-      ? pathLib.resolve(path)
-      : pathLib.resolve(this.baseFilePath + path) // resolve turns any path into an absolute path (ie: /folder1/folder2/../example.js resolves to /folder1/example.js)
-
-    if (resolvedPath.substr(0, this.baseFilePath.length) !== this.baseFilePath) {
+    const relative = pathLib.relative(this.baseFilePath, absolute ? path : this.baseFilePath + path)
+    if (path !== '' && (!relative || relative.startsWith('..') || pathLib.isAbsolute(relative))) {
+      // resolve turns any path into an absolute path (ie: /folder1/folder2/../example.js resolves to /folder1/example.js)
+      const resolvedPath = absolute
+        ? pathLib.resolve(path)
+        : pathLib.resolve(this.baseFilePath + path)
       throw new Error(resolvedPath + ' is not a valid file path.')
     } else {
       return true
@@ -194,17 +198,16 @@ export class FileSystem {
    * If the local file does not exist yet, the remote file is downloaded to local disk then the local filepath is returned.
    *
    * @param url {String} - url of file to download.
-   * @param permanent {Boolean} - True persists the file locally indefinitely, false caches the file temporarily (until file is removed during cache pruning).
    * @returns {Promise<string|null>} promise that resolves to the local file path of downloaded url file.
    */
-  async getLocalFilePathFromUrl(url: string, permanent = false) {
+  async getLocalFilePathFromUrl(url: string) {
     const fileName = this.getFileNameFromUrl(url)
     const requestId = uuid.v4()
 
     try {
       FileSystem.lockCacheFile(fileName, requestId)
 
-      const { path } = await this.observable(url, requestId, permanent, fileName).toPromise()
+      const { path } = await this.observable(url, requestId, 'immutable', fileName).toPromise()
 
       return path
     } finally {
@@ -221,41 +224,41 @@ export class FileSystem {
    *
    * @param local {String} - path to the local file.
    * @param url {String} - url of file to download.
-   * @param permanent {Boolean} - whether the file should be saved to the tmp or permanent cache directory.
    * @param move {Boolean} - whether the file should be copied or moved.
+   * @param mtime {Date} - creation timestamp
+   * @param ctime {Date} - modification timestamp (iOS only)
    * @returns {Promise} promise that resolves to an object that contains cached file info.
    */
-  async cacheLocalFile(local: string, url: string, permanent = false, move = false) {
+  async cacheLocalFile(local: string, url: string, move = false, mtime?: Date, ctime?: Date) {
     const fileName = this.getFileNameFromUrl(url)
-    const path = this.baseFilePath + (permanent ? 'permanent/' : 'cache/') + fileName
+    const path = this.baseFilePath + fileName
     this._validatePath(path, true)
 
     // Logic here prunes cache directory on "cache" writes to ensure cache doesn't get too large.
-    if (!permanent) {
-      await this.pruneCache()
-    }
+    await this.pruneCache()
 
     // Move or copy the file to the cache
     try {
-      const cacheDirExists = await this.exists(permanent ? 'permanent' : 'cache')
+      const cacheDirExists = await this.exists('')
       if (!cacheDirExists) {
-        await RNFS.mkdir(`${this.baseFilePath}${permanent ? 'permanent' : 'cache'}`)
+        await RNFS.mkdir(this.baseFilePath)
       }
 
       await RNFSUnlinkIfExists(path)
       await (move ? RNFS.moveFile(local, path) : RNFS.copyFile(local, path))
+
+      // Update the modified and created times of the file otherwise the if-modified-since request will probably always
+      await RNFS.touch(path, mtime, ctime)
     } catch (error) {
       await RNFSUnlinkIfExists(path)
       return {
         url: null,
-        cacheType: permanent ? 'permanent' : 'cache',
         path: null,
       }
     }
 
     return {
       url: url,
-      cacheType: permanent ? 'permanent' : 'cache',
       path: path,
     }
   }
@@ -265,67 +268,55 @@ export class FileSystem {
    * Used to download files to local filesystem.
    *
    * @param url {String} - url of file to download.
-   * @param permanent {Boolean} - True persists the file locally indefinitely, false caches the file temporarily (until file is removed during cache pruning).
    * @param fileName {String} - defaults to a sha1 hash of the url param with extension of same filetype.
-   * @param clobber {Boolean} - whether or not to overwrite a file that already exists at path. defaults to false.
    * @returns {Observable<CacheFileInfo>} observable that resolves to an object that contains the local path of the downloaded file and the filename.
    */
   fetchFile(
     url: string,
-    permanent = false,
     fileName: string | null = null,
-    clobber = false,
+    headers?: { [key: string]: string },
   ): Observable<CacheFileInfo> {
     fileName = fileName || this.getFileNameFromUrl(url)
-    const path = this.baseFilePath + (permanent ? 'permanent/' : 'cache/') + fileName
+    const path = this.baseFilePath + fileName
     this._validatePath(path, true)
 
-    return from(this.exists((permanent ? 'permanent/' : 'cache/') + fileName)).pipe(
-      // Clobber logic
-      delayWhen((fileExistsAtPath) =>
-        from(
-          !clobber && fileExistsAtPath
-            ? throwError('A file already exists at ' + path + ' and clobber is set to false.')
-            : Promise.resolve(),
-        ),
+    return from(this.exists('')).pipe(
+      delayWhen((cacheDirExists) =>
+        // Logic here prunes cache directory on "cache" writes to ensure cache doesn't get too large.
+        from(cacheDirExists ? this.pruneCache() : RNFS.mkdir(this.baseFilePath)),
       ),
-      // Logic here prunes cache directory on "cache" writes to ensure cache doesn't get too large.
-      delayWhen(() => from(!permanent ? this.pruneCache() : Promise.resolve())),
-      delayWhen(() =>
-        from(
-          this.exists(permanent ? 'permanent' : 'cache').then((cacheDirExists) =>
-            !cacheDirExists
-              ? RNFS.mkdir(`${this.baseFilePath}${permanent ? 'permanent' : 'cache'}`)
-              : Promise.resolve(),
-          ),
-        ),
-      ),
+      mergeMap(() => from(RNFS.stat(path)).pipe(catchError(() => of(null)))),
       // Hit network and download file to local disk.
-      mergeMap(() =>
+      mergeMap((stat) =>
         from(
           RNFS.downloadFile({
             fromUrl: url,
             toFile: path,
+            headers,
           }).promise,
+        ).pipe(
+          // Only need to emit or throw errors if the file has changed or this is the first download
+          filter(() => stat === null),
+          map((downloadResult) => {
+            if (downloadResult.statusCode !== 200) {
+              throw new Error('Request failed ' + downloadResult.statusCode)
+            }
+
+            return {
+              path: 'file://' + path,
+              fileName: pathLib.basename(path),
+            }
+          }),
         ),
       ),
-      map((downloadResult) => {
-        if (downloadResult.statusCode !== 200) {
-          throw new Error('Request failed ' + downloadResult.statusCode)
-        }
-        return {
-          path: 'file://' + path,
-          fileName: pathLib.basename(path),
-        }
-      }),
-      catchError(() => {
-        return from(RNFSUnlinkIfExists(path)).pipe(
+      catchError(() =>
+        from(RNFSUnlinkIfExists(path)).pipe(
           mapTo({
             path: null,
             fileName: pathLib.basename(path),
           }),
-        )
-      }),
+        ),
+      ),
     )
   }
 
@@ -338,12 +329,12 @@ export class FileSystem {
    */
   async pruneCache() {
     // If cache directory does not exist yet there's no need for pruning.
-    if (!(await this.exists('cache'))) {
+    if (!(await this.exists(''))) {
       return
     }
 
     // Get directory contents
-    const dirContents = await RNFS.readDir(this.baseFilePath + 'cache')
+    const dirContents = await RNFS.readDir(this.baseFilePath)
 
     // Sort dirContents in order of oldest to newest file.
     dirContents.sort((a, b) => {
@@ -367,10 +358,10 @@ export class FileSystem {
         if (
           contentFile &&
           !FileSystem.cacheLock[contentFile.name] &&
-          this._validatePath('cache/' + contentFile.name)
+          this._validatePath(contentFile.name)
         ) {
           overflowSize -= parseInt(contentFile.size)
-          RNFSUnlinkIfExists(this.baseFilePath + 'cache/' + contentFile.name)
+          RNFSUnlinkIfExists(this.baseFilePath + contentFile.name)
         }
       }
     }
@@ -399,14 +390,14 @@ export class FileSystem {
    *
    * @param url {String} - url of file to download.
    * @param componentId {String} - Unique id of the requestor.
-   * @param permanent {Boolean} - True persists the file locally indefinitely, false caches the file temporarily (until file is removed during cache pruning).
+   * @param cacheStrategy {CacheStrategy} - The cache strategy to use, defaults to 'immutable'.
    * @param fileName {String} - defaults to a sha1 hash of the url param with extension of same filetype.
    * @returns {Observable<CacheFileInfo>} observable that resolves to an object that contains the local path of the downloaded file and the filename.
    */
   observable(
     url: string,
     componentId: string,
-    permanent = false,
+    cacheStrategy: CacheStrategy = 'immutable',
     fileName: string | null = null,
   ): Observable<CacheFileInfo> {
     if (!url) {
@@ -423,29 +414,39 @@ export class FileSystem {
     }
 
     if (!FileSystem.cacheObservables[fileName]) {
-      const permanentFileExists = this.exists('permanent/' + fileName)
-      const cacheFileExists = this.exists('cache/' + fileName)
+      this._validatePath(fileName)
 
-      return (FileSystem.cacheObservables[fileName] = forkJoin([
-        permanentFileExists,
-        cacheFileExists,
-      ]).pipe(
-        switchMap(([existsPermanent, existsCache]) => {
-          // Check caches
-          if (existsPermanent) {
-            return of({
-              path: 'file://' + this.baseFilePath + 'permanent/' + fileName,
-              fileName,
-            } as CacheFileInfo)
-          } else if (existsCache) {
-            return of({
-              path: 'file://' + this.baseFilePath + 'cache/' + fileName,
-              fileName,
-            } as CacheFileInfo)
+      return (FileSystem.cacheObservables[fileName] = from(
+        RNFS.stat(this.baseFilePath + fileName),
+      ).pipe(
+        catchError(() => of(null)),
+        switchMap((stat) => {
+          if (stat !== null) {
+            switch (cacheStrategy) {
+              case 'immutable': {
+                return of({
+                  path: 'file://' + this.baseFilePath + fileName,
+                  fileName,
+                } as CacheFileInfo)
+              }
+              case 'mutable': {
+                return from([
+                  of({
+                    path: 'file://' + this.baseFilePath + fileName,
+                    fileName,
+                  } as CacheFileInfo),
+                  this.fetchFile(url, fileName, {
+                    'if-modified-since': new Date(stat.mtime).toUTCString(),
+                  }),
+                ]).pipe(concatAll())
+              }
+              default:
+                throw new Error(`Invalid CacheStrategy ${cacheStrategy} is unhandled`)
+            }
           }
 
           // Download
-          return this.fetchFile(url, permanent, fileName, true)
+          return this.fetchFile(url, fileName)
         }),
         publishReplay(1),
         refCount(),
