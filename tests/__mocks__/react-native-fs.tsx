@@ -49,14 +49,14 @@ const readDir = jest.fn().mockResolvedValue([
 ])
 
 module.exports = {
-  mkdir: jest.fn().mockReturnValue(Promise.resolve()),
+  mkdir: jest.fn(() => Promise.resolve()),
   moveFile: jest.fn(),
   copyFile: jest.fn(),
   pathForBundle: jest.fn(),
   pathForGroup: jest.fn(),
   getFSInfo: jest.fn(),
   getAllExternalFilesDirs: jest.fn(),
-  unlink: jest.fn(),
+  unlink: jest.fn(() => Promise.resolve()),
   exists: jest.fn().mockResolvedValue(true),
   stopDownload: jest.fn(),
   resumeDownload: jest.fn(),
