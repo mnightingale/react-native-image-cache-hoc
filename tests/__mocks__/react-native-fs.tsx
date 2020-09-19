@@ -49,7 +49,7 @@ const readDir = jest.fn().mockResolvedValue([
 ])
 
 module.exports = {
-  mkdir: jest.fn(),
+  mkdir: jest.fn().mockReturnValue(Promise.resolve()),
   moveFile: jest.fn(),
   copyFile: jest.fn(),
   pathForBundle: jest.fn(),
