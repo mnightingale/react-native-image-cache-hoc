@@ -68,8 +68,10 @@ module.exports = {
   existsAssets: jest.fn(),
   readdir: jest.fn(),
   setReadable: jest.fn(),
-  stat: jest.fn().mockImplementation((filepath: string) => {
-    return readDir().then((dirs) => dirs.find((element) => element.path === filepath))
+  stat: jest.fn().mockImplementation(async (filepath: string) => {
+    const dirs = await readDir()
+    const found = dirs.find((element) => element.path === filepath)
+    return found ? Promise.resolve(found) : Promise.reject(new Error('File not found.'))
   }),
   readFile: jest.fn(),
   read: jest.fn(),
