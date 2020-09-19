@@ -349,6 +349,8 @@ export class FileSystem {
     if (currentCacheSize > this.cachePruneTriggerLimit) {
       let overflowSize = currentCacheSize - this.cachePruneTriggerLimit
 
+      const unlinkPromises = []
+
       // Keep deleting cached files so long as the current cache size is larger than the size required to trigger cache pruning, or until
       // all cache files have been evaluated.
       while (overflowSize > 0 && dirContents.length) {
@@ -361,9 +363,11 @@ export class FileSystem {
           this._validatePath(contentFile.name)
         ) {
           overflowSize -= parseInt(contentFile.size)
-          RNFSUnlinkIfExists(this.baseFilePath + contentFile.name)
+          unlinkPromises.push(RNFSUnlinkIfExists(this.baseFilePath + contentFile.name))
         }
       }
+
+      await Promise.all(unlinkPromises)
     }
   }
 
