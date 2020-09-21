@@ -94,17 +94,14 @@ export class FileSystem {
     // Delete component lock on cache file
     if (FileSystem.cacheLock[fileName]) {
       delete FileSystem.cacheLock[fileName][componentId]
-    }
 
-    // If no further component locks remain on cache file, delete filename property from cacheLock dictionary.
-    if (
-      FileSystem.cacheLock[fileName] &&
-      Object.keys(FileSystem.cacheLock[fileName]).length === 0
-    ) {
-      delete FileSystem.cacheLock[fileName]
+      // If no further component locks remain on cache file, delete filename property from cacheLock dictionary.
+      if (Object.keys(FileSystem.cacheLock[fileName]).length === 0) {
+        delete FileSystem.cacheLock[fileName]
 
-      if (FileSystem.cacheObservables[fileName]) {
-        delete FileSystem.cacheObservables[fileName]
+        if (FileSystem.cacheObservables[fileName]) {
+          delete FileSystem.cacheObservables[fileName]
+        }
       }
     }
   }
