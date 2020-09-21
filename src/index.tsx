@@ -14,7 +14,7 @@
  */
 
 // Load dependencies.
-import React from 'react'
+import React, { ReactNode } from 'react'
 import PropTypes from 'prop-types'
 import FileSystemFactory, { CacheFileInfo, FileSystem } from './FileSystem'
 import traverse from 'traverse'
@@ -43,7 +43,7 @@ export interface ReactNativeImageCacheHocProps {
 
   style?: StyleProp<ImageStyle>
 
-  placeholder?: JSX.Element
+  placeholder?: ReactNode
 }
 
 export interface ReactNativeImageCacheHocState {
@@ -56,7 +56,7 @@ export interface ReactNativeImageCacheHocOptions {
   fileHostWhitelist?: string[]
   cachePruneTriggerLimit?: number // Maximum size of image file cache in bytes before pruning occurs. Defaults to 15 MB.
   fileDirName?: string | null // Namespace local file writing to this directory. Defaults to 'react-native-image-cache-hoc'.
-  defaultPlaceholder?: JSX.Element | null
+  defaultPlaceholder?: ReactNode | null
 }
 
 const imageCacheHoc = <P extends object>(
@@ -77,7 +77,7 @@ const imageCacheHoc = <P extends object>(
     throw new Error('fileDirName option must be string')
   }
   if (options.defaultPlaceholder && typeof options.defaultPlaceholder !== 'object') {
-    throw new Error('defaultPlaceholder option must be a JSX.Element')
+    throw new Error('defaultPlaceholder option must be a ReactNode')
   }
 
   return class extends React.PureComponent<

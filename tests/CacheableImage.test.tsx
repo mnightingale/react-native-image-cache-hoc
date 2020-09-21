@@ -48,7 +48,7 @@ describe('CacheableImage', function () {
       imageCacheHoc(Image, {
         defaultPlaceholder: 5478329 as any,
       }),
-    ).toThrow('defaultPlaceholder option must be a JSX.Element')
+    ).toThrow('defaultPlaceholder option must be a ReactNode')
 
     const validOptions: ReactNativeImageCacheHocOptions = {
       validProtocols: ['http', 'https'],
