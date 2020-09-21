@@ -1,11 +1,18 @@
 import 'should'
-import FileSystemFactory, { FileSystem } from '../src/FileSystem'
 import pathLib from 'path'
 import { mockData } from './mockData'
 import RNFS from 'react-native-fs'
 import uuid from 'react-native-uuid'
+import FileSystemFactory, { FileSystem } from '../src/FileSystem'
+import { mocked } from 'ts-jest/utils'
 
 describe('FileSystem', function () {
+  const MockedRNFS = mocked(RNFS, true)
+
+  beforeEach(function () {
+    jest.clearAllMocks()
+  })
+
   // Test static class properties and methods
   it('FileSystem class cache locking logic should work as expected.', () => {
     // Cache lock should default to empty
@@ -142,76 +149,74 @@ describe('FileSystem', function () {
       )
       unknownFilename.should.equal('831eb245a3d9032cdce450f8760d2b8ddb442a3d.bin')
     })
-  })
 
-  it('#getLocalFilePathFromUrl should return local filepath if it exists on local fs in permanent dir.', () => {
-    const fileSystem = FileSystemFactory()
-
-    return fileSystem
-      .getLocalFilePathFromUrl(
-        'https://img.wennermedia.com/5333a62d-07db-432a-92e2-198cafa38a14-326adb1a-d8ed-4a5d-b37e-5c88883e1989.png',
-      )
-      .then((localFilePath) => {
-        localFilePath.should.equal(
-          'file://' +
-            mockData.basePath +
-            '/react-native-image-cache-hoc/cd7d2199cd8e088cdfd9c99fc6359666adc36289.png',
-        )
-      })
-  })
-
-  it('#getLocalFilePathFromUrl should return local filepath if it exists on local fs in cache dir.', () => {
-    const fileSystem = FileSystemFactory()
-
-    return fileSystem
-      .getLocalFilePathFromUrl(
-        'https://img.wennermedia.com/5333a62d-07db-432a-92e2-198cafa38a14-326adb1a-d8ed-4a5d-b37e-5c88883e1989.png',
-      )
-      .then((localFilePath) => {
-        localFilePath.should.equal(
-          'file://' +
-            mockData.basePath +
-            '/react-native-image-cache-hoc/cd7d2199cd8e088cdfd9c99fc6359666adc36289.png',
-        )
-      })
-  })
-
-  it('#getLocalFilePathFromUrl should download file and write to disk (default to cache dir) if it does not exist on local fs.', async () => {
-    const fileSystem = FileSystemFactory()
-
-    await expect(
-      fileSystem.getLocalFilePathFromUrl(
-        'https://img.wennermedia.com/5333a62d-07db-432a-92e2-198cafa38a14-326adb1a-d8ed-4a5d-b37e-5c88883e1989.png',
-      ),
-    ).resolves.toBe(
-      'file:///base/file/path/react-native-image-cache-hoc/cd7d2199cd8e088cdfd9c99fc6359666adc36289.png',
-    )
-
-    expect(RNFS.downloadFile).toBeCalled()
-  })
-
-  it('#fetchFile should validate path.', () => {
-    const fileSystem = FileSystemFactory()
-
-    const badFileName = '../../../../bad-filename.jpg'
-
-    expect(() => fileSystem.fetchFile('https://google.com/arbitrary.jpg', badFileName)).toThrow(
-      (() => {
-        const resolvedPath = pathLib.resolve(
-          mockData.basePath + '/react-native-image-cache-hoc/' + badFileName,
-        )
-        return resolvedPath + ' is not a valid file path.'
-      })(),
-    )
-  })
-
-  describe('observable', () => {
-    it('When an immutable request is made with an existing cached file, the cached file should be used without making a download request.', (done) => {
+    it('#getLocalFilePathFromUrl should return local filepath if it exists on local fs', async () => {
       const fileSystem = FileSystemFactory()
 
-      RNFS.downloadFile.mockClear()
+      MockedRNFS.stat.mockResolvedValueOnce({
+        name: '',
+        path: '',
+        size: '',
+        mode: 777,
+        mtime: 0,
+        ctime: 0,
+        originalFilepath: '',
+        isFile: () => true,
+        isDirectory: () => false,
+      })
 
-      RNFS.stat.mockResolvedValueOnce({ mtime: 0 })
+      const localFilePath = await fileSystem.getLocalFilePathFromUrl(
+        'https://img.wennermedia.com/5333a62d-07db-432a-92e2-198cafa38a14-326adb1a-d8ed-4a5d-b37e-5c88883e1989.png',
+      )
+
+      expect(localFilePath).toEqual(
+        'file://' +
+          mockData.basePath +
+          '/react-native-image-cache-hoc/cd7d2199cd8e088cdfd9c99fc6359666adc36289.png',
+      )
+
+      expect(MockedRNFS.downloadFile).not.toBeCalled()
+    })
+
+    it('#getLocalFilePathFromUrl should download file and write to disk if it does not exist on local fs.', async () => {
+      const fileSystem = FileSystemFactory()
+
+      await expect(
+        fileSystem.getLocalFilePathFromUrl(
+          'https://img.wennermedia.com/5333a62d-07db-432a-92e2-198cafa38a14-326adb1a-d8ed-4a5d-b37e-5c88883e1989.png',
+        ),
+      ).resolves.toBe(
+        'file:///base/file/path/react-native-image-cache-hoc/cd7d2199cd8e088cdfd9c99fc6359666adc36289.png',
+      )
+
+      expect(MockedRNFS.downloadFile).toBeCalled()
+    })
+  })
+
+  describe('Observable', () => {
+    it('When url is empty, expect null path', (done) => {
+      const fileSystem = FileSystemFactory()
+
+      fileSystem.observable('', 'arbitrary-uuid-1').subscribe((value) => {
+        expect(value.path).toBeNull()
+        done()
+      })
+    })
+
+    it('When a immutable request is made with an existing cached file, the cached file should be used without making a download request', (done) => {
+      const fileSystem = FileSystemFactory()
+
+      MockedRNFS.stat.mockResolvedValueOnce({
+        name: '',
+        path: '',
+        size: '',
+        mode: 777,
+        mtime: 0,
+        ctime: 0,
+        originalFilepath: '',
+        isFile: () => true,
+        isDirectory: () => false,
+      })
 
       const url =
         'https://img.wennermedia.com/5333a62d-07db-432a-92e2-198cafa38a14-326adb1a-d8ed-4a5d-b37e-5c88883e1989.png'
@@ -234,20 +239,228 @@ describe('FileSystem', function () {
         },
         complete: () => {
           expect(onNext).toBeCalledTimes(1)
-          expect(RNFS.downloadFile).not.toHaveBeenCalled()
+          expect(MockedRNFS.downloadFile).not.toHaveBeenCalled()
+          FileSystem.unlockCacheFile(fileName, requestId)
           done()
         },
       })
+    })
 
-      FileSystem.unlockCacheFile(fileName, requestId)
+    it('When a mutable request is made without an existing cached file, the file path should be emitted once', (done) => {
+      const fileSystem = FileSystemFactory()
+
+      const url =
+        'https://img.wennermedia.com/5333a62d-07db-432a-92e2-198cafa38a14-326adb1a-d8ed-4a5d-b37e-5c88883e1989.png'
+      const fileName = fileSystem.getFileNameFromUrl(url)
+      const requestId = uuid.v4()
+
+      FileSystem.lockCacheFile(fileName, requestId)
+
+      const onNext = jest.fn()
+
+      // fileSystem.exists() is mocked to always return true, so error should always be thrown unless clobber is set to true.
+      fileSystem.observable(url, requestId, 'mutable').subscribe({
+        next: (element) => {
+          onNext()
+          expect(element).toStrictEqual({
+            path:
+              'file:///base/file/path/react-native-image-cache-hoc/cd7d2199cd8e088cdfd9c99fc6359666adc36289.png',
+            fileName: 'cd7d2199cd8e088cdfd9c99fc6359666adc36289.png',
+          })
+        },
+        complete: () => {
+          expect(onNext).toBeCalledTimes(1)
+          expect(MockedRNFS.downloadFile).toHaveBeenCalled()
+          FileSystem.unlockCacheFile(fileName, requestId)
+          done()
+        },
+      })
+    })
+
+    it('When a mutable request is made with an existing cached file and the remote file has changed, the file path should be emitted twice', (done) => {
+      const fileSystem = FileSystemFactory()
+
+      MockedRNFS.stat.mockResolvedValueOnce({
+        name: '',
+        path: '',
+        size: '',
+        mode: 777,
+        mtime: 0,
+        ctime: 0,
+        originalFilepath: '',
+        isFile: () => true,
+        isDirectory: () => false,
+      })
+
+      const url =
+        'https://img.wennermedia.com/5333a62d-07db-432a-92e2-198cafa38a14-326adb1a-d8ed-4a5d-b37e-5c88883e1989.png'
+      const fileName = fileSystem.getFileNameFromUrl(url)
+      const requestId = uuid.v4()
+
+      FileSystem.lockCacheFile(fileName, requestId)
+
+      const onNext = jest.fn()
+
+      // fileSystem.exists() is mocked to always return true, so error should always be thrown unless clobber is set to true.
+      fileSystem.observable(url, requestId, 'mutable').subscribe({
+        next: (element) => {
+          onNext()
+          expect(element).toStrictEqual({
+            path:
+              'file:///base/file/path/react-native-image-cache-hoc/cd7d2199cd8e088cdfd9c99fc6359666adc36289.png',
+            fileName: 'cd7d2199cd8e088cdfd9c99fc6359666adc36289.png',
+          })
+        },
+        complete: () => {
+          expect(onNext).toBeCalledTimes(2)
+          expect(MockedRNFS.downloadFile).toHaveBeenCalled()
+          FileSystem.unlockCacheFile(fileName, requestId)
+          done()
+        },
+      })
+    })
+
+    it('When a mutable request is made with an existing cached file and the remote file has not changed, the file path should be emitted once', (done) => {
+      const fileSystem = FileSystemFactory()
+
+      MockedRNFS.stat
+        .mockResolvedValueOnce({
+          name: '',
+          path: '',
+          size: '',
+          mode: 777,
+          mtime: 0,
+          ctime: 0,
+          originalFilepath: '',
+          isFile: () => true,
+          isDirectory: () => false,
+        })
+        .mockResolvedValueOnce({
+          name: '',
+          path: '',
+          size: '',
+          mode: 777,
+          mtime: 0,
+          ctime: 0,
+          originalFilepath: '',
+          isFile: () => true,
+          isDirectory: () => false,
+        })
+
+      MockedRNFS.downloadFile.mockImplementationOnce(() => ({
+        jobId: -1,
+        promise: Promise.resolve({ jobId: -1, bytesWritten: 0, statusCode: 304 }),
+      }))
+
+      const url =
+        'https://img.wennermedia.com/5333a62d-07db-432a-92e2-198cafa38a14-326adb1a-d8ed-4a5d-b37e-5c88883e1989.png'
+      const fileName = fileSystem.getFileNameFromUrl(url)
+      const requestId = uuid.v4()
+
+      FileSystem.lockCacheFile(fileName, requestId)
+
+      const onNext = jest.fn()
+
+      // fileSystem.exists() is mocked to always return true, so error should always be thrown unless clobber is set to true.
+      fileSystem.observable(url, requestId, 'mutable').subscribe({
+        next: (element) => {
+          onNext()
+          expect(element).toStrictEqual({
+            path:
+              'file:///base/file/path/react-native-image-cache-hoc/cd7d2199cd8e088cdfd9c99fc6359666adc36289.png',
+            fileName: 'cd7d2199cd8e088cdfd9c99fc6359666adc36289.png',
+          })
+        },
+        complete: () => {
+          expect(onNext).toBeCalledTimes(1)
+          expect(MockedRNFS.downloadFile).toHaveBeenCalled()
+          FileSystem.unlockCacheFile(fileName, requestId)
+          done()
+        },
+      })
+    })
+
+    it('When a invalid cache strategy is provided, an error should be thrown', () => {
+      const fileSystem = FileSystemFactory()
+
+      const url =
+        'https://img.wennermedia.com/5333a62d-07db-432a-92e2-198cafa38a14-326adb1a-d8ed-4a5d-b37e-5c88883e1989.png'
+      const fileName = fileSystem.getFileNameFromUrl(url)
+      const requestId = uuid.v4()
+
+      expect(() => fileSystem.observable(url, requestId, 'invalid' as any, fileName)).toThrow(
+        'Invalid CacheStrategy invalid is unhandled',
+      )
+    })
+
+    it('#observable should throw if a lock does not exist', () => {
+      const fileSystem = FileSystemFactory()
+
+      expect(() => fileSystem.observable('https://i.redd.it/rc29s4bz61uz.png', uuid.v4())).toThrow(
+        'A lock must be aquired before requesting an observable',
+      )
+    })
+
+    it('#observable should reuse existing observables', () => {
+      const fileSystem = FileSystemFactory()
+
+      const url = 'https://i.redd.it/rc29s4bz61uz.png'
+      const fileName = fileSystem.getFileNameFromUrl(url)
+      const componentIdA = uuid.v4()
+      const componentIdB = uuid.v4()
+
+      FileSystem.lockCacheFile(fileName, componentIdA)
+      FileSystem.lockCacheFile(fileName, componentIdB)
+
+      const a = fileSystem.observable(url, componentIdA)
+      const b = fileSystem.observable(url, componentIdB)
+
+      expect(a).toBe(b)
+
+      FileSystem.unlockCacheFile(fileName, componentIdA)
+      FileSystem.unlockCacheFile(fileName, componentIdB)
+    })
+
+    it('#observable should handle failure responses on download', (done) => {
+      const fileSystem = FileSystemFactory()
+
+      MockedRNFS.downloadFile.mockImplementationOnce(() => ({
+        jobId: -1,
+        promise: Promise.resolve({ jobId: -1, bytesWritten: 0, statusCode: 404 }),
+      }))
+
+      fileSystem
+        .fetchFile(
+          'https://img.wennermedia.com/5333a62d-07db-432a-92e2-198cafa38a14-326adb1a-d8ed-4a5d-b37e-5c88883e1989.png',
+        )
+        .subscribe(({ path }) => {
+          expect(path).toBeNull()
+
+          expect(MockedRNFS.unlink).toHaveBeenCalled()
+
+          done()
+        })
+    })
+  })
+
+  describe('fetchFile', () => {
+    it('#fetchFile should validate path.', () => {
+      const fileSystem = FileSystemFactory()
+      const badFileName = '../../../../bad-filename.jpg'
+      expect(() => fileSystem.fetchFile('https://google.com/arbitrary.jpg', badFileName)).toThrow(
+        (() => {
+          const resolvedPath = pathLib.resolve(
+            mockData.basePath + '/react-native-image-cache-hoc/' + badFileName,
+          )
+          return resolvedPath + ' is not a valid file path.'
+        })(),
+      )
     })
 
     it('#fetchFile prune logic should be called on cache writes.', (done) => {
       const fileSystem = FileSystemFactory()
-
       // Mock fileSystem.pruneCache() to determine if it is called correctly.
-      fileSystem.pruneCache = jest.fn().mockReturnValue(Promise.resolve())
-
+      fileSystem.pruneCache = jest.fn(() => Promise.resolve())
       // fileSystem.exists() is mocked to always return true, so error should always be thrown unless clobber is set to true.
       fileSystem
         .fetchFile(
@@ -255,134 +468,69 @@ describe('FileSystem', function () {
         )
         .subscribe({
           complete: () => {
-            expect(fileSystem.pruneCache).toBeCalled()
+            expect(fileSystem.pruneCache).toHaveBeenCalled()
             done()
           },
         })
     })
+  })
 
-    it('#fetchFile should work as expected.', (done) => {
+  describe('Cache Pruning', () => {
+    it('When the cache directory exists, method should complete', async () => {
       const fileSystem = FileSystemFactory()
 
-      // Mock fileSystem.pruneCache().
-      fileSystem.pruneCache = jest.fn().mockReturnValue(Promise.resolve())
+      await fileSystem.pruneCache()
+    })
 
-      // fileSystem.exists() is mocked to always return true, so error should always be thrown unless clobber is set to true.
-      fileSystem
-        .fetchFile(
-          'https://img.wennermedia.com/5333a62d-07db-432a-92e2-198cafa38a14-326adb1a-d8ed-4a5d-b37e-5c88883e1989.png',
-        )
-        .subscribe({
-          next: (value) => {
-            expect(value).toStrictEqual({
-              path:
-                'file:///base/file/path/react-native-image-cache-hoc/cd7d2199cd8e088cdfd9c99fc6359666adc36289.png',
-              fileName: 'cd7d2199cd8e088cdfd9c99fc6359666adc36289.png',
-            })
-          },
-          complete: () => {
-            done()
-          },
+    it('When the cache directory does not exist, method should exit early', async () => {
+      MockedRNFS.exists.mockResolvedValueOnce(false)
+
+      const fileSystem = FileSystemFactory()
+
+      await fileSystem.pruneCache()
+
+      expect(MockedRNFS.readDir).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('unlink', () => {
+    it('#unlink should only accept valid paths.', () => {
+      const fileSystem = FileSystemFactory()
+
+      const badFileName = '/../../../../../bad-file-name.jpg'
+
+      return fileSystem
+        .unlink(badFileName)
+        .then(() => {
+          throw new Error('Bad file path was accepted.')
+        })
+        .catch((error) => {
+          const resolvedPath = pathLib.resolve(mockData.basePath + badFileName)
+
+          error.should.deepEqual(new Error(resolvedPath + ' is not a valid file path.'))
         })
     })
-  })
 
-  it('#pruneCache should not throw errors.', () => {
-    const fileSystem = FileSystemFactory()
+    it('#unlink should work as expected for valid paths.', () => {
+      // Mock unlink to be true.
+      MockedRNFS.unlink.mockResolvedValueOnce()
 
-    return fileSystem.pruneCache()
-  })
+      const fileSystem = FileSystemFactory()
 
-  it('#unlink should only accept valid paths.', () => {
-    const fileSystem = FileSystemFactory()
+      const validPath = '/valid.jpg'
 
-    const badFileName = '/../../../../../bad-file-name.jpg'
-
-    return fileSystem
-      .unlink(badFileName)
-      .then(() => {
-        throw new Error('Bad file path was accepted.')
-      })
-      .catch((error) => {
-        const resolvedPath = pathLib.resolve(mockData.basePath + badFileName)
-
-        error.should.deepEqual(new Error(resolvedPath + ' is not a valid file path.'))
-      })
-  })
-
-  it('#unlink should work as expected for valid paths.', () => {
-    // Mock unlink to be true.
-    RNFS.unlink.mockResolvedValueOnce(true)
-
-    const fileSystem = FileSystemFactory()
-
-    const validPath = '/valid.jpg'
-
-    return expect(fileSystem.unlink(validPath)).resolves.toEqual(true)
-  })
-
-  it('#unlink should work as expected for invalid paths.', () => {
-    // Mock unlink to be false.
-    RNFS.exists.mockResolvedValueOnce(false)
-
-    const fileSystem = FileSystemFactory()
-
-    const validPath = '/invalid.jpg'
-
-    return expect(fileSystem.unlink(validPath)).resolves.toEqual(true)
-  })
-
-  it('#observable should throw if a lock does not exist', () => {
-    const fileSystem = FileSystemFactory()
-
-    expect(() => fileSystem.observable('https://i.redd.it/rc29s4bz61uz.png', uuid.v4())).toThrow(
-      'A lock must be aquired before requesting an observable',
-    )
-  })
-
-  it('#observable should reuse existing observables', () => {
-    const fileSystem = FileSystemFactory()
-
-    const url = 'https://i.redd.it/rc29s4bz61uz.png'
-    const fileName = fileSystem.getFileNameFromUrl(url)
-    const componentIdA = uuid.v4()
-    const componentIdB = uuid.v4()
-
-    FileSystem.lockCacheFile(fileName, componentIdA)
-    FileSystem.lockCacheFile(fileName, componentIdB)
-
-    const a = fileSystem.observable(url, componentIdA)
-    const b = fileSystem.observable(url, componentIdB)
-
-    expect(a).toBe(b)
-
-    FileSystem.unlockCacheFile(fileName, componentIdA)
-    FileSystem.unlockCacheFile(fileName, componentIdB)
-  })
-
-  it('#observable should handle failure responses on download', (done) => {
-    const fileSystem = FileSystemFactory()
-
-    RNFS.exists
-      .mockResolvedValueOnce(false)
-      .mockResolvedValueOnce(false)
-      .mockResolvedValueOnce(false)
-
-    RNFS.downloadFile.mockReturnValue({
-      promise: Promise.resolve({ statusCode: 404 }),
+      return expect(fileSystem.unlink(validPath)).resolves.toEqual(true)
     })
 
-    fileSystem
-      .fetchFile(
-        'https://img.wennermedia.com/5333a62d-07db-432a-92e2-198cafa38a14-326adb1a-d8ed-4a5d-b37e-5c88883e1989.png',
-        false,
-        null,
-        true,
-      )
-      .subscribe(({ path }) => {
-        expect(path).toBeNull()
+    it('#unlink should work as expected for invalid paths.', () => {
+      // Mock unlink to be false.
+      MockedRNFS.exists.mockResolvedValueOnce(false)
 
-        done()
-      })
+      const fileSystem = FileSystemFactory()
+
+      const invalidPath = '/invalid.jpg'
+
+      return expect(fileSystem.unlink(invalidPath)).resolves.toEqual(true)
+    })
   })
 })

@@ -1,76 +1,61 @@
 import 'should'
 import { mockData } from './mockData'
-import { imageCacheHoc } from '../src/index'
-import { Image } from 'react-native'
-import sinon from 'sinon'
+import { imageCacheHoc, ReactNativeImageCacheHocOptions } from '../src/index'
+import { Image, Text } from 'react-native'
 import 'should-sinon'
 import RNFS from 'react-native-fs'
 import { shallow } from 'enzyme'
 import React from 'react'
+import { mocked } from 'ts-jest/utils'
 
 describe('CacheableImage', function () {
   const originalWarn = console.warn
   afterEach(() => (console.warn = originalWarn))
+  const MockedRNFS = mocked(RNFS, true)
+
+  beforeEach(function () {
+    jest.clearAllMocks()
+  })
 
   it('HOC options validation should work as expected.', () => {
     // Check validation is catching bad option input.
-    try {
-      imageCacheHoc(Image, {
-        validProtocols: 'string',
-      })
-    } catch (error) {
-      error.should.deepEqual(
-        new Error('validProtocols option must be an array of protocol strings.'),
-      )
-    }
 
-    try {
+    expect(() =>
       imageCacheHoc(Image, {
-        fileHostWhitelist: 'string',
-      })
-    } catch (error) {
-      error.should.deepEqual(
-        new Error('fileHostWhitelist option must be an array of host strings.'),
-      )
-    }
+        validProtocols: 'string' as any,
+      }),
+    ).toThrow('validProtocols option must be an array of protocol strings.')
 
-    try {
+    expect(() =>
       imageCacheHoc(Image, {
-        cachePruneTriggerLimit: 'string',
-      })
-    } catch (error) {
-      error.should.deepEqual(new Error('cachePruneTriggerLimit option must be an integer.'))
-    }
+        fileHostWhitelist: 'string' as any,
+      }),
+    ).toThrow('fileHostWhitelist option must be an array of host strings.')
 
-    try {
+    expect(() =>
       imageCacheHoc(Image, {
-        fileDirName: 1,
-      })
-    } catch (error) {
-      error.should.deepEqual(new Error('fileDirName option must be string'))
-    }
+        cachePruneTriggerLimit: 'string' as any,
+      }),
+    ).toThrow('cachePruneTriggerLimit option must be an integer.')
 
-    try {
+    expect(() =>
       imageCacheHoc(Image, {
-        defaultPlaceholder: 5478329,
-      })
-    } catch (error) {
-      error.should.deepEqual(
-        new Error(
-          'defaultPlaceholder option object must include "component" and "props" properties (props can be an empty object)',
-        ),
-      )
-    }
+        fileDirName: 1 as any,
+      }),
+    ).toThrow('fileDirName option must be string')
 
-    const validOptions = {
+    expect(() =>
+      imageCacheHoc(Image, {
+        defaultPlaceholder: 5478329 as any,
+      }),
+    ).toThrow('defaultPlaceholder option must be a JSX.Element')
+
+    const validOptions: ReactNativeImageCacheHocOptions = {
       validProtocols: ['http', 'https'],
       fileHostWhitelist: ['i.redd.it', 'localhost'],
       cachePruneTriggerLimit: 1024 * 1024 * 10,
       fileDirName: 'test-dir',
-      defaultPlaceholder: {
-        component: Image,
-        props: {},
-      },
+      defaultPlaceholder: <Text>Default Placeholder</Text>,
     }
 
     // Valid options shouldn't throw an error
@@ -109,7 +94,7 @@ describe('CacheableImage', function () {
 
   it('#flush static method should work as expected.', () => {
     // Mock unlink to always be true.
-    RNFS.unlink.mockResolvedValue(true)
+    MockedRNFS.unlink.mockResolvedValueOnce()
 
     const CacheableImage = imageCacheHoc(Image)
 
@@ -140,8 +125,7 @@ describe('CacheableImage', function () {
   })
 
   it('#_validateImageComponent should validate bad component props correctly.', () => {
-    const consoleOutput = []
-    console.warn = (output) => consoleOutput.push(output)
+    console.warn = jest.fn()
 
     // Verify source uri prop only accepts web accessible urls.
 
@@ -153,9 +137,10 @@ describe('CacheableImage', function () {
       },
     })
 
-    expect(consoleOutput).toEqual([
+    expect(console.warn).toHaveBeenNthCalledWith(
+      1,
       'Invalid source prop. <CacheableImage> props.source.uri should be a web accessible url with a valid protocol and host. NOTE: Default valid protocol is https, default valid hosts are *.',
-    ])
+    )
 
     // Verify source uri prop only accepts web accessible urls from whitelist if whitelist set.
 
@@ -170,10 +155,10 @@ describe('CacheableImage', function () {
       },
     })
 
-    expect(consoleOutput).toEqual([
+    expect(console.warn).toHaveBeenNthCalledWith(
+      2,
       'Invalid source prop. <CacheableImage> props.source.uri should be a web accessible url with a valid protocol and host. NOTE: Default valid protocol is https, default valid hosts are *.',
-      'Invalid source prop. <CacheableImage> props.source.uri should be a web accessible url with a valid protocol and host. NOTE: Default valid protocol is https, default valid hosts are *.',
-    ])
+    )
 
     // Verify source uri prop only accepts web accessible urls from correct protocols if protocol list set.
 
@@ -188,11 +173,10 @@ describe('CacheableImage', function () {
       },
     })
 
-    expect(consoleOutput).toEqual([
+    expect(console.warn).toHaveBeenNthCalledWith(
+      3,
       'Invalid source prop. <CacheableImage> props.source.uri should be a web accessible url with a valid protocol and host. NOTE: Default valid protocol is https, default valid hosts are *.',
-      'Invalid source prop. <CacheableImage> props.source.uri should be a web accessible url with a valid protocol and host. NOTE: Default valid protocol is https, default valid hosts are *.',
-      'Invalid source prop. <CacheableImage> props.source.uri should be a web accessible url with a valid protocol and host. NOTE: Default valid protocol is https, default valid hosts are *.',
-    ])
+    )
   })
 
   it('Verify component is actually still mounted before calling setState() in componentDidMount().', async () => {
@@ -206,7 +190,7 @@ describe('CacheableImage', function () {
             mockData.basePath +
               '/react-native-image-cache-hoc/cd7d2199cd8e088cdfd9c99fc6359666adc36289.png',
           )
-        }, 1000) // Mock 1 second delay for this async function to complete.
+        }, 500) // Mock 0.5 second delay for this async function to complete.
       }),
     )
 
@@ -217,7 +201,7 @@ describe('CacheableImage', function () {
     // executing, setState() will not be called by an unmounted component when componentDidMount() resumes execution after
     // completing async work.
     // See: https://github.com/billmalarky/react-native-image-cache-hoc/issues/6#issuecomment-354490597
-    cacheableImage.setState = sinon.spy() // Mock setState with function tracker to ensure it doesn't get called on unmounted component.
+    const setStateSpy = jest.spyOn(cacheableImage, 'setState')
     cacheableImage.componentDidMount()
     cacheableImage.unmounted$.value.should.be.false()
     cacheableImage.componentWillUnmount()
@@ -225,22 +209,16 @@ describe('CacheableImage', function () {
 
     // Wait for componentDidMount() to complete execution.
     await new Promise((resolve) => {
-      setTimeout(resolve, 2000)
+      setTimeout(resolve, 1000)
     })
 
     // Ensure that setState() was not called on unmounted component.
-    cacheableImage.setState.should.not.be.called()
+    expect(setStateSpy).not.toBeCalled()
+
+    setStateSpy.mockRestore()
   })
 
   it('componentDidUpdate should not throw any uncaught errors.', (done) => {
-    RNFS.downloadFile
-      .mockReturnValueOnce({
-        promise: Promise.resolve({ statusCode: 200 }),
-      })
-      .mockReturnValueOnce({
-        promise: Promise.resolve({ statusCode: 200 }),
-      })
-
     const CacheableImage = imageCacheHoc(Image)
 
     const wrapper = shallow(<CacheableImage {...mockData.mockCacheableImageProps} />)
@@ -280,6 +258,31 @@ describe('CacheableImage', function () {
       expect(wrapper.prop('source')).toStrictEqual({
         uri: './test.jpg',
       })
+
+      done()
+    })
+  })
+
+  it('When render with onLoadFinished prop, event should be called with image size', (done) => {
+    const CacheableImage = imageCacheHoc(Image)
+
+    const onLoadFinished = jest.fn()
+
+    const getSizeMock = jest
+      .spyOn(Image, 'getSize')
+      .mockImplementation((uri: string, success: (width: number, height: number) => void) => {
+        success(100, 200)
+      })
+
+    shallow(
+      <CacheableImage {...mockData.mockCacheableImageProps} onLoadFinished={onLoadFinished} />,
+    )
+
+    setImmediate(() => {
+      expect(getSizeMock).toHaveBeenCalledTimes(1)
+      expect(onLoadFinished).toHaveBeenCalled()
+
+      getSizeMock.mockRestore()
 
       done()
     })
