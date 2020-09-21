@@ -1,3 +1,4 @@
+import { ReadDirItem } from 'react-native-fs'
 import { mockData } from '../mockData'
 
 const readDir = jest.fn().mockResolvedValue([
@@ -70,7 +71,7 @@ module.exports = {
   setReadable: jest.fn(),
   stat: jest.fn().mockImplementation(async (filepath: string) => {
     const dirs = await readDir()
-    const found = dirs.find((element) => element.path === filepath)
+    const found = dirs.find((element: ReadDirItem) => element.path === filepath)
     return found ? Promise.resolve(found) : Promise.reject(new Error('File not found.'))
   }),
   readFile: jest.fn(),
@@ -83,9 +84,9 @@ module.exports = {
   writeFile: jest.fn(),
   appendFile: jest.fn(),
   write: jest.fn(),
-  downloadFile: jest.fn().mockReturnValue({
+  downloadFile: jest.fn(() => ({
     promise: Promise.resolve({ statusCode: 200 }),
-  }),
+  })),
   uploadFiles: jest.fn(),
   touch: jest.fn(),
   MainBundlePath: jest.fn(),
