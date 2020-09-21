@@ -88,7 +88,7 @@ const imageCacheHoc = <P extends object>(
       fileHostWhitelist: PropTypes.array,
       source: PropTypes.object.isRequired,
       style: PropTypes.oneOfType([PropTypes.object, PropTypes.array]),
-      placeholder: PropTypes.elementType,
+      placeholder: PropTypes.element,
       onLoadFinished: PropTypes.func,
     }
 
