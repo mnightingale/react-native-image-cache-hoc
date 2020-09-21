@@ -78,6 +78,7 @@
     "dv-scripts": "^1.4.2",
     "enzyme": "^3.11.0",
     "enzyme-adapter-react-16": "^1.15.4",
+    "enzyme-to-json": "^3.5.0",
     "eslint-config-dv-scripts": "^1.1.1",
     "jest": "^26.4.2",
     "metro-react-native-babel-preset": "^0.63.0",

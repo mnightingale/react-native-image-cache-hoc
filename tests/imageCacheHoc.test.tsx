@@ -29,6 +29,7 @@ describe('CacheableImage', function () {
         uri:
           'file:///base/file/path/react-native-image-cache-hoc/d3b74e9fa8248a5805e2dcf17a8577acd28c089b.png',
       })
+      expect(wrapper.prop('style')).toStrictEqual(styles.image)
       done()
     })
   })
@@ -48,7 +49,7 @@ describe('CacheableImage', function () {
       },
     })
 
-    const propPlaceholder = <Text>Default Placeholder</Text>
+    const propPlaceholder = <Text>Placeholder</Text>
 
     const wrapper = shallow(
       <CacheableImage
@@ -58,7 +59,8 @@ describe('CacheableImage', function () {
       />,
       { disableLifecycleMethods: true },
     )
-    expect(wrapper.prop('style')).toBe(propPlaceholder.props.style)
+
+    expect(wrapper).toMatchSnapshot()
   })
 
   it('renders correctly with placeholder option set', () => {
@@ -84,6 +86,7 @@ describe('CacheableImage', function () {
       <CacheableImage style={styles.image} source={mockData.mockCacheableImageProps.source} />,
       { disableLifecycleMethods: true },
     )
-    expect(wrapper.prop('style')).toBe(optionPlaceholder.props.style)
+
+    expect(wrapper).toMatchSnapshot()
   })
 })

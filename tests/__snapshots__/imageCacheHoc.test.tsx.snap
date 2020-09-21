@@ -1,0 +1,13 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`CacheableImage renders correctly with placeholder option set 1`] = `
+<Text>
+  Default Placeholder
+</Text>
+`;
+
+exports[`CacheableImage renders correctly with placeholder prop set 1`] = `
+<Text>
+  Placeholder
+</Text>
+`;
