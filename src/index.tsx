@@ -296,7 +296,7 @@ const imageCacheHoc = <P extends object>(
     }
 
     onSourceLoaded({ path }: CacheFileInfo) {
-      this.setState({ loadedAt: new Date().getTime(), localFilePath: path })
+      this.setState({ loadedAt: Date.now(), localFilePath: path })
       this.invalidUrl = path === null
 
       if (path && this.props.onLoadFinished) {
