@@ -411,6 +411,11 @@ export class FileSystem {
       })
     }
 
+    // Check for invalid cache strategies
+    if (cacheStrategy !== 'immutable' && cacheStrategy !== 'mutable') {
+      throw new Error(`Invalid CacheStrategy ${cacheStrategy} is unhandled`)
+    }
+
     fileName = fileName || this.getFileNameFromUrl(url)
 
     if (!FileSystem.cacheLock[fileName] || !FileSystem.cacheLock[fileName][componentId]) {
@@ -444,8 +449,6 @@ export class FileSystem {
                   }),
                 ]).pipe(concatAll())
               }
-              default:
-                throw new Error(`Invalid CacheStrategy ${cacheStrategy} is unhandled`)
             }
           }
 
