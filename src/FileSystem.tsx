@@ -217,7 +217,7 @@ export class FileSystem {
 
   /**
    *
-   * Manually move or copy a file to the cache.
+   * Manually move or copy a local file to the cache.
    * Can be used to pre-warm caches.
    * If calling this method repeatedly to cache a long list of files,
    * be sure to use a queue and limit concurrency so your app performance does not suffer.
