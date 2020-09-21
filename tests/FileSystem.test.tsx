@@ -237,12 +237,13 @@ describe('FileSystem', function () {
             fileName: 'cd7d2199cd8e088cdfd9c99fc6359666adc36289.png',
           })
         },
-        complete: () => {
-          expect(onNext).toBeCalledTimes(1)
-          expect(MockedRNFS.downloadFile).not.toHaveBeenCalled()
-          FileSystem.unlockCacheFile(fileName, requestId)
-          done()
-        },
+      })
+
+      setImmediate(() => {
+        expect(onNext).toBeCalledTimes(1)
+        expect(MockedRNFS.downloadFile).not.toHaveBeenCalled()
+        FileSystem.unlockCacheFile(fileName, requestId)
+        done()
       })
     })
 
@@ -268,12 +269,13 @@ describe('FileSystem', function () {
             fileName: 'cd7d2199cd8e088cdfd9c99fc6359666adc36289.png',
           })
         },
-        complete: () => {
-          expect(onNext).toBeCalledTimes(1)
-          expect(MockedRNFS.downloadFile).toHaveBeenCalled()
-          FileSystem.unlockCacheFile(fileName, requestId)
-          done()
-        },
+      })
+
+      setImmediate(() => {
+        expect(onNext).toBeCalledTimes(1)
+        expect(MockedRNFS.downloadFile).toHaveBeenCalled()
+        FileSystem.unlockCacheFile(fileName, requestId)
+        done()
       })
     })
 
@@ -325,12 +327,13 @@ describe('FileSystem', function () {
             fileName: 'cd7d2199cd8e088cdfd9c99fc6359666adc36289.png',
           })
         },
-        complete: () => {
-          expect(onNext).toBeCalledTimes(2)
-          expect(MockedRNFS.downloadFile).toHaveBeenCalled()
-          FileSystem.unlockCacheFile(fileName, requestId)
-          done()
-        },
+      })
+
+      setImmediate(() => {
+        expect(onNext).toBeCalledTimes(2)
+        expect(MockedRNFS.downloadFile).toHaveBeenCalled()
+        FileSystem.unlockCacheFile(fileName, requestId)
+        done()
       })
     })
 
@@ -385,12 +388,13 @@ describe('FileSystem', function () {
             fileName: 'cd7d2199cd8e088cdfd9c99fc6359666adc36289.png',
           })
         },
-        complete: () => {
-          expect(onNext).toBeCalledTimes(1)
-          expect(MockedRNFS.downloadFile).toHaveBeenCalled()
-          FileSystem.unlockCacheFile(fileName, requestId)
-          done()
-        },
+      })
+
+      setImmediate(() => {
+        expect(onNext).toBeCalledTimes(1)
+        expect(MockedRNFS.downloadFile).toHaveBeenCalled()
+        FileSystem.unlockCacheFile(fileName, requestId)
+        done()
       })
     })
 

@@ -12,7 +12,7 @@ import pathLib from 'path'
 import RNFS from 'react-native-fs'
 import sha1 from 'crypto-js/sha1'
 import URL from 'url-parse'
-import { from, Observable, of } from 'rxjs'
+import { from, Observable, of, ReplaySubject } from 'rxjs'
 import {
   switchMap,
   catchError,
@@ -24,6 +24,7 @@ import {
   filter,
   delayWhen,
   concatAll,
+  take,
 } from 'rxjs/operators'
 import uuid from 'react-native-uuid'
 import { CacheStrategy } from '.'
@@ -74,7 +75,7 @@ export class FileSystem {
     }
   } = {}
   static cacheObservables: {
-    [key: string]: Observable<CacheFileInfo>
+    [key: string]: ReplaySubject<CacheFileInfo>
   } = {}
   baseFilePath: string
   cachePruneTriggerLimit: number
@@ -204,7 +205,9 @@ export class FileSystem {
     try {
       FileSystem.lockCacheFile(fileName, requestId)
 
-      const { path } = await this.observable(url, requestId, 'immutable', fileName).toPromise()
+      const { path } = await this.observable(url, requestId, 'immutable', fileName)
+        .pipe(take(1))
+        .toPromise()
 
       return path
     } finally {
@@ -259,6 +262,14 @@ export class FileSystem {
         url,
         path: null,
       }
+    }
+
+    // Publish to subscribers that the image for this url has been updated
+    if (FileSystem.cacheObservables[fileName]) {
+      FileSystem.cacheObservables[fileName].next({
+        path: 'file://' + path,
+        fileName,
+      })
     }
 
     return {
@@ -429,9 +440,9 @@ export class FileSystem {
     if (!FileSystem.cacheObservables[fileName]) {
       this._validatePath(fileName)
 
-      return (FileSystem.cacheObservables[fileName] = from(
-        RNFS.stat(this.baseFilePath + fileName),
-      ).pipe(
+      const subject$ = new ReplaySubject<CacheFileInfo>()
+
+      const obs$ = from(RNFS.stat(this.baseFilePath + fileName)).pipe(
         catchError(() => of(null)),
         switchMap((stat) => {
           if (stat !== null) {
@@ -461,7 +472,12 @@ export class FileSystem {
         }),
         publishReplay(1),
         refCount(),
-      ))
+      )
+
+      // Subscribe
+      obs$.subscribe((v) => subject$.next(v))
+
+      return (FileSystem.cacheObservables[fileName] = subject$)
     }
 
     return FileSystem.cacheObservables[fileName]

@@ -1,12 +1,14 @@
 import 'should'
 import { mockData } from './mockData'
-import { imageCacheHoc, ReactNativeImageCacheHocOptions } from '../src/index'
+import { FileSystem, imageCacheHoc, ReactNativeImageCacheHocOptions } from '../src/index'
 import { Image, Text } from 'react-native'
 import 'should-sinon'
 import RNFS from 'react-native-fs'
 import { shallow } from 'enzyme'
 import React from 'react'
 import { mocked } from 'ts-jest/utils'
+import { ReplaySubject } from 'rxjs'
+import { CacheFileInfo } from '../src/FileSystem'
 
 describe('CacheableImage', function () {
   const originalWarn = console.warn
@@ -144,6 +146,30 @@ describe('CacheableImage', function () {
 
       expect(MockedRNFS.copyFile).not.toHaveBeenCalled()
       expect(MockedRNFS.moveFile).not.toHaveBeenCalled()
+    })
+
+    it('When local file and observable exist, it should be notified of changes', async (done) => {
+      FileSystem.cacheObservables[
+        '90c1be491d18ff2a7280039e9b65749461a65403.png'
+      ] = new ReplaySubject<CacheFileInfo>(1)
+
+      const CacheableImage = imageCacheHoc(Image)
+
+      const local = '/exists.png'
+      const url = 'https://example.com/exists.png'
+
+      await CacheableImage.cacheLocalFile(local, url)
+
+      FileSystem.cacheObservables['90c1be491d18ff2a7280039e9b65749461a65403.png'].subscribe(
+        (value) => {
+          expect(value).toStrictEqual({
+            path:
+              'file:///base/file/path/react-native-image-cache-hoc/90c1be491d18ff2a7280039e9b65749461a65403.png',
+            fileName: '90c1be491d18ff2a7280039e9b65749461a65403.png',
+          })
+          done()
+        },
+      )
     })
   })
 
