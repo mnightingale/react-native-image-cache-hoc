@@ -43,7 +43,7 @@ export interface ReactNativeImageCacheHocProps {
 
   style?: StyleProp<ImageStyle>
 
-  placeholder?: { component: React.ComponentType; props: any }
+  placeholder?: JSX.Element
 }
 
 export interface ReactNativeImageCacheHocState {
@@ -56,10 +56,7 @@ export interface ReactNativeImageCacheHocOptions {
   fileHostWhitelist?: string[]
   cachePruneTriggerLimit?: number // Maximum size of image file cache in bytes before pruning occurs. Defaults to 15 MB.
   fileDirName?: string | null // Namespace local file writing to this directory. Defaults to 'react-native-image-cache-hoc'.
-  defaultPlaceholder?: {
-    component: React.ComponentType
-    props: any
-  } | null
+  defaultPlaceholder?: JSX.Element | null
 }
 
 const imageCacheHoc = <P extends object>(
@@ -79,13 +76,8 @@ const imageCacheHoc = <P extends object>(
   if (options.fileDirName && typeof options.fileDirName !== 'string') {
     throw new Error('fileDirName option must be string')
   }
-  if (
-    options.defaultPlaceholder &&
-    (!options.defaultPlaceholder.component || !options.defaultPlaceholder.props)
-  ) {
-    throw new Error(
-      'defaultPlaceholder option object must include "component" and "props" properties (props can be an empty object)',
-    )
+  if (options.defaultPlaceholder && typeof options.defaultPlaceholder !== 'object') {
+    throw new Error('defaultPlaceholder option must be a JSX.Element')
   }
 
   return class extends React.PureComponent<
@@ -335,11 +327,9 @@ const imageCacheHoc = <P extends object>(
         return <Wrapped key={this.state.loadedAt} {...(props as P)} />
       } else {
         if (this.props.placeholder) {
-          return <this.props.placeholder.component {...this.props.placeholder.props} />
+          return this.props.placeholder
         } else if (this.options.defaultPlaceholder) {
-          return (
-            <this.options.defaultPlaceholder.component {...this.options.defaultPlaceholder.props} />
-          )
+          return this.options.defaultPlaceholder
         } else {
           // Extract props proprietary to this HOC before passing props through.
           const { source, ...filteredProps } = this.props
