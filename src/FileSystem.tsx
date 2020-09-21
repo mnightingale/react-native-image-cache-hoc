@@ -234,6 +234,13 @@ export class FileSystem {
     const path = this.baseFilePath + fileName
     this._validatePath(path, true)
 
+    if (!(await RNFS.exists(local))) {
+      return {
+        url,
+        path: null,
+      }
+    }
+
     // Logic here prunes cache directory on "cache" writes to ensure cache doesn't get too large.
     await this.pruneCache()
 
@@ -252,14 +259,14 @@ export class FileSystem {
     } catch (error) {
       await RNFSUnlinkIfExists(path)
       return {
-        url: null,
+        url,
         path: null,
       }
     }
 
     return {
-      url: url,
-      path: path,
+      url,
+      path,
     }
   }
 

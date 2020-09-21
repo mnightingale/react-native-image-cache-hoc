@@ -92,6 +92,61 @@ describe('CacheableImage', function () {
     })
   })
 
+  describe('cacheLocalFile', () => {
+    it('When local file exists, it should be copied to the cache', async () => {
+      const CacheableImage = imageCacheHoc(Image)
+
+      const local = '/exists.png'
+      const url = 'https://example.com/exists.png'
+
+      const result = await CacheableImage.cacheLocalFile(local, url)
+
+      expect(result).toStrictEqual({
+        url: 'https://example.com/exists.png',
+        path:
+          '/base/file/path/react-native-image-cache-hoc/90c1be491d18ff2a7280039e9b65749461a65403.png',
+      })
+
+      expect(MockedRNFS.copyFile).toHaveBeenCalled()
+    })
+
+    it('When local file exists, it should be moved to the cache', async () => {
+      const CacheableImage = imageCacheHoc(Image)
+
+      const local = '/exists.png'
+      const url = 'https://example.com/exists.png'
+
+      const result = await CacheableImage.cacheLocalFile(local, url, true)
+
+      expect(result).toStrictEqual({
+        url: 'https://example.com/exists.png',
+        path:
+          '/base/file/path/react-native-image-cache-hoc/90c1be491d18ff2a7280039e9b65749461a65403.png',
+      })
+
+      expect(MockedRNFS.moveFile).toHaveBeenCalled()
+    })
+
+    it('When local file does not exist, no fs operation should be performed', async () => {
+      MockedRNFS.exists.mockResolvedValueOnce(false)
+
+      const CacheableImage = imageCacheHoc(Image)
+
+      const local = '/missing.png'
+      const url = 'https://example.com/missing.png'
+
+      const result = await CacheableImage.cacheLocalFile(local, url)
+
+      expect(result).toStrictEqual({
+        url: 'https://example.com/missing.png',
+        path: null,
+      })
+
+      expect(MockedRNFS.copyFile).not.toHaveBeenCalled()
+      expect(MockedRNFS.moveFile).not.toHaveBeenCalled()
+    })
+  })
+
   it('#flush static method should work as expected.', () => {
     // Mock unlink to always be true.
     MockedRNFS.unlink.mockResolvedValueOnce()
