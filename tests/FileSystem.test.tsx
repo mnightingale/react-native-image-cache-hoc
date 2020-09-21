@@ -280,17 +280,31 @@ describe('FileSystem', function () {
     it('When a mutable request is made with an existing cached file and the remote file has changed, the file path should be emitted twice', (done) => {
       const fileSystem = FileSystemFactory()
 
-      MockedRNFS.stat.mockResolvedValueOnce({
-        name: '',
-        path: '',
-        size: '',
-        mode: 777,
-        mtime: 0,
-        ctime: 0,
-        originalFilepath: '',
-        isFile: () => true,
-        isDirectory: () => false,
-      })
+      MockedRNFS.stat
+        // observable
+        .mockResolvedValueOnce({
+          name: '',
+          path: '',
+          size: '',
+          mode: 777,
+          mtime: 0,
+          ctime: 0,
+          originalFilepath: '',
+          isFile: () => true,
+          isDirectory: () => false,
+        })
+        // fetchFile
+        .mockResolvedValueOnce({
+          name: '',
+          path: '',
+          size: '',
+          mode: 777,
+          mtime: 0,
+          ctime: 0,
+          originalFilepath: '',
+          isFile: () => true,
+          isDirectory: () => false,
+        })
 
       const url =
         'https://img.wennermedia.com/5333a62d-07db-432a-92e2-198cafa38a14-326adb1a-d8ed-4a5d-b37e-5c88883e1989.png'

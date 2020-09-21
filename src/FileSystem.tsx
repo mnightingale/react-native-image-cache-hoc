@@ -300,9 +300,9 @@ export class FileSystem {
           }).promise,
         ).pipe(
           // Only need to emit or throw errors if the file has changed or this is the first download
-          filter(() => stat === null),
+          filter((downloadResult) => stat === null || downloadResult.statusCode === 200),
           map((downloadResult) => {
-            if (downloadResult.statusCode !== 200) {
+            if (stat === null && downloadResult.statusCode !== 200) {
               throw new Error('Request failed ' + downloadResult.statusCode)
             }
 
