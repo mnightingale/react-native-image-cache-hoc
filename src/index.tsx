@@ -14,18 +14,21 @@
  */
 
 // Load dependencies.
-import React from 'react'
+import React, { ReactNode } from 'react'
 import PropTypes from 'prop-types'
 import FileSystemFactory, { CacheFileInfo, FileSystem } from './FileSystem'
 import traverse from 'traverse'
 import validator from 'validator'
 import uuid from 'react-native-uuid'
-import { Image, ImageStyle, StyleProp } from 'react-native'
+import { Image, ImageStyle, Platform, StyleProp } from 'react-native'
 import { BehaviorSubject, Subscription } from 'rxjs'
 import { skip, takeUntil } from 'rxjs/operators'
 
+export type CacheStrategy = 'immutable' | 'mutable'
+
 export type Source = {
   uri?: string
+  cache?: CacheStrategy
 }
 
 export interface OnLoadEvent {
@@ -35,15 +38,16 @@ export interface OnLoadEvent {
 
 export interface ReactNativeImageCacheHocProps {
   source?: Source
-  permanent?: boolean
+
   onLoadFinished?(event: OnLoadEvent): void
 
   style?: StyleProp<ImageStyle>
 
-  placeholder?: { component: React.ComponentType; props: any }
+  placeholder?: ReactNode
 }
 
 export interface ReactNativeImageCacheHocState {
+  loadedAt: number
   localFilePath: string | null
 }
 
@@ -52,10 +56,7 @@ export interface ReactNativeImageCacheHocOptions {
   fileHostWhitelist?: string[]
   cachePruneTriggerLimit?: number // Maximum size of image file cache in bytes before pruning occurs. Defaults to 15 MB.
   fileDirName?: string | null // Namespace local file writing to this directory. Defaults to 'react-native-image-cache-hoc'.
-  defaultPlaceholder?: {
-    component: React.ComponentType
-    props: any
-  } | null
+  defaultPlaceholder?: ReactNode | null
 }
 
 const imageCacheHoc = <P extends object>(
@@ -75,13 +76,8 @@ const imageCacheHoc = <P extends object>(
   if (options.fileDirName && typeof options.fileDirName !== 'string') {
     throw new Error('fileDirName option must be string')
   }
-  if (
-    options.defaultPlaceholder &&
-    (!options.defaultPlaceholder.component || !options.defaultPlaceholder.props)
-  ) {
-    throw new Error(
-      'defaultPlaceholder option object must include "component" and "props" properties (props can be an empty object)',
-    )
+  if (options.defaultPlaceholder && typeof options.defaultPlaceholder !== 'object') {
+    throw new Error('defaultPlaceholder option must be a ReactNode')
   }
 
   return class extends React.PureComponent<
@@ -91,12 +87,8 @@ const imageCacheHoc = <P extends object>(
     static propTypes = {
       fileHostWhitelist: PropTypes.array,
       source: PropTypes.object.isRequired,
-      permanent: PropTypes.bool,
       style: PropTypes.oneOfType([PropTypes.object, PropTypes.array]),
-      placeholder: PropTypes.shape({
-        component: PropTypes.func,
-        props: PropTypes.object,
-      }),
+      placeholder: PropTypes.element,
       onLoadFinished: PropTypes.func,
     }
 
@@ -115,47 +107,52 @@ const imageCacheHoc = <P extends object>(
      * be sure to use a queue and limit concurrency so your app performance does not suffer.
      *
      * @param url {String} - url of file to download.
-     * @param permanent {Boolean} - whether the file should be saved to the tmp or permanent cache directory.
      * @returns {Promise} promise that resolves to an object that contains cached file info.
      */
-    static async cacheFile(url: string, permanent = false) {
+    static async cacheFile(url: string): Promise<any> {
       const fileSystem = FileSystemFactory(
         options.cachePruneTriggerLimit || null,
         options.fileDirName || null,
       )
-      const localFilePath = await fileSystem.getLocalFilePathFromUrl(url, permanent)
+      const localFilePath = await fileSystem.getLocalFilePathFromUrl(url)
 
       return {
         url: url,
-        cacheType: permanent ? 'permanent' : 'cache',
         localFilePath,
       }
     }
 
     /**
      *
-     * Manually move or copy a file to the cache.
+     * Manually move or copy a local file to the cache.
      * Can be used to pre-warm caches.
      * If calling this method repeatedly to cache a long list of files,
      * be sure to use a queue and limit concurrency so your app performance does not suffer.
      *
      * @param local {String} - path to the local file.
      * @param url {String} - url of file to download.
-     * @param permanent {Boolean} - whether the file should be saved to the tmp or permanent cache directory.
      * @param move {Boolean} - whether the file should be copied or moved.
+     * @param mtime {Date} - creation timestamp
+     * @param ctime {Date} - modification timestamp (iOS only)
      * @returns {Promise} promise that resolves to an object that contains cached file info.
      */
-    static async cacheLocalFile(local: string, url: string, permanent = false, move = false) {
+    static async cacheLocalFile(
+      local: string,
+      url: string,
+      move = false,
+      mtime?: Date,
+      ctime?: Date,
+    ) {
       const fileSystem = FileSystemFactory(
         options.cachePruneTriggerLimit || null,
         options.fileDirName || null,
       )
-      return fileSystem.cacheLocalFile(local, url, permanent, move)
+      return fileSystem.cacheLocalFile(local, url, move, mtime, ctime)
     }
 
     /**
      *
-     * Delete all locally stored image files created by react-native-image-cache-hoc (cache AND permanent).
+     * Delete all locally stored image files created by react-native-image-cache-hoc.
      * Calling this method will cause a performance hit on your app until the local files are rebuilt.
      *
      * @returns {Promise} promise that resolves to an object that contains the flush results.
@@ -165,15 +162,8 @@ const imageCacheHoc = <P extends object>(
         options.cachePruneTriggerLimit || null,
         options.fileDirName || null,
       )
-      const [permanentDirFlushed, cacheDirFlushed] = await Promise.all([
-        fileSystem.unlink('permanent'),
-        fileSystem.unlink('cache'),
-      ])
 
-      return {
-        permanentDirFlushed,
-        cacheDirFlushed,
-      }
+      return fileSystem.unlink('')
     }
 
     constructor(props: P) {
@@ -181,6 +171,7 @@ const imageCacheHoc = <P extends object>(
 
       // Set initial state
       this.state = {
+        loadedAt: 0,
         localFilePath: null,
       }
 
@@ -243,7 +234,7 @@ const imageCacheHoc = <P extends object>(
 
       // Set url from source prop
       const url = traverse(this.props).get(['source', 'uri'])
-      const permanent = this.props.permanent ? true : false
+      const cacheStrategy = traverse(this.props).get(['source', 'cache']) || 'immutable'
 
       // Add a cache lock to file with this name (prevents concurrent <CacheableImage> components from pruning a file with this name from cache).
       const fileName = this.fileSystem.getFileNameFromUrl(url)
@@ -252,7 +243,7 @@ const imageCacheHoc = <P extends object>(
       // Init the image cache logic
       if (!this.invalidUrl) {
         this.subscription = this.fileSystem
-          .observable(url, this.componentId, permanent)
+          .observable(url, this.componentId, cacheStrategy)
           .pipe(takeUntil(this.unmounted$.pipe(skip(1))))
           .subscribe((info) => this.onSourceLoaded(info))
       }
@@ -281,13 +272,13 @@ const imageCacheHoc = <P extends object>(
       FileSystem.lockCacheFile(nextFileName, this.componentId)
 
       this.invalidUrl = !this._validateImageComponent()
-      const permanent = this.props.permanent ? true : false
+      const cacheStrategy = traverse(this.props).get(['source', 'cache']) || 'immutable'
 
       // Init the image cache logic
       this.subscription?.unsubscribe()
       if (!this.invalidUrl) {
         this.subscription = this.fileSystem
-          .observable(nextUrl, this.componentId, permanent)
+          .observable(nextUrl, this.componentId, cacheStrategy)
           .pipe(takeUntil(this.unmounted$.pipe(skip(1))))
           .subscribe((info) => this.onSourceLoaded(info))
       }
@@ -305,7 +296,7 @@ const imageCacheHoc = <P extends object>(
     }
 
     onSourceLoaded({ path }: CacheFileInfo) {
-      this.setState({ localFilePath: path })
+      this.setState({ loadedAt: new Date().getTime(), localFilePath: path })
       this.invalidUrl = path === null
 
       if (path && this.props.onLoadFinished) {
@@ -320,23 +311,25 @@ const imageCacheHoc = <P extends object>(
     render() {
       // If media loaded, render full image component, else render placeholder.
       if (this.state.localFilePath && !this.invalidUrl) {
-        // Extract props proprietary to this HOC before passing props through.
-        const { permanent, ...filteredProps } = this.props
-
-        const props = Object.assign({}, filteredProps, {
-          source: { uri: this.state.localFilePath },
+        // Android caches images in memory, if we are rendering the image should have changed locally so appending a timestamp to the path forces it to be loaded from disk
+        // The internals of te Android behaviour have not been investigated but perhaps it would be beneficial to use the last modified date instead
+        const props = Object.assign({}, this.props, {
+          source: {
+            uri:
+              this.state.localFilePath +
+              (Platform.OS === 'android' ? '?' + this.state.loadedAt : ''),
+          },
         })
-        return <Wrapped {...(props as P)} />
+
+        return <Wrapped key={this.state.loadedAt} {...(props as P)} />
       } else {
         if (this.props.placeholder) {
-          return <this.props.placeholder.component {...this.props.placeholder.props} />
+          return this.props.placeholder
         } else if (this.options.defaultPlaceholder) {
-          return (
-            <this.options.defaultPlaceholder.component {...this.options.defaultPlaceholder.props} />
-          )
+          return this.options.defaultPlaceholder
         } else {
           // Extract props proprietary to this HOC before passing props through.
-          const { permanent, source, ...filteredProps } = this.props
+          const { source, ...filteredProps } = this.props
 
           return <Wrapped {...(filteredProps as P)} />
         }

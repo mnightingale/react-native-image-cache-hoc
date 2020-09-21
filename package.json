@@ -35,7 +35,7 @@
     "build": "dv-scripts build",
     "lint": "dv-scripts lint src tests",
     "release": "dv-scripts release",
-    "test": "dv-scripts test"
+    "test": "yarn jest"
   },
   "prettier": {
     "printWidth": 100,
@@ -45,12 +45,6 @@
   },
   "eslintConfig": {
     "extends": "dv-scripts"
-  },
-  "jest": {
-    "preset": "react-native",
-    "setupFiles": [
-      "./tests/config.tsx"
-    ]
   },
   "dependencies": {
     "buffer": "^5.0.8",
@@ -67,6 +61,7 @@
     "@babel/core": "^7.11.6",
     "@babel/runtime": "^7.11.2",
     "@types/crypto-js": "^3.1.47",
+    "@types/enzyme-adapter-react-16": "^1.0.6",
     "@types/jest": "^26.0.13",
     "@types/react": "^16.9.49",
     "@types/react-native": "^0.63.18",
@@ -83,6 +78,7 @@
     "dv-scripts": "^1.4.2",
     "enzyme": "^3.11.0",
     "enzyme-adapter-react-16": "^1.15.4",
+    "enzyme-to-json": "^3.5.0",
     "eslint-config-dv-scripts": "^1.1.1",
     "jest": "^26.4.2",
     "metro-react-native-babel-preset": "^0.63.0",
@@ -93,6 +89,7 @@
     "should": "^13.1.2",
     "should-sinon": "^0.0.6",
     "sinon": "^4.1.3",
+    "ts-jest": "^26.4.0",
     "typescript": "^4.0.2"
   },
   "peerDependencies": {
