@@ -23,6 +23,7 @@ import uuid from 'react-native-uuid'
 import { Image, ImageStyle, Platform, StyleProp } from 'react-native'
 import { BehaviorSubject, Subscription } from 'rxjs'
 import { skip, takeUntil } from 'rxjs/operators'
+import URL from 'url-parse'
 
 export type CacheStrategy = 'immutable' | 'mutable'
 
@@ -235,17 +236,25 @@ const imageCacheHoc = <P extends object>(
       // Set url from source prop
       const url = traverse(this.props).get(['source', 'uri'])
       const cacheStrategy = traverse(this.props).get(['source', 'cache']) || 'immutable'
+      const isFile = new URL(url).protocol === 'file:'
 
-      // Add a cache lock to file with this name (prevents concurrent <CacheableImage> components from pruning a file with this name from cache).
-      const fileName = this.fileSystem.getFileNameFromUrl(url)
-      FileSystem.lockCacheFile(fileName, this.componentId)
+      if (isFile || !this.invalidUrl) {
+        if (isFile) {
+          this.onSourceLoaded({
+            path: url,
+            fileName: this.fileSystem.getFileNameFromUrl(url),
+          })
+        } else {
+          // Add a cache lock to file with this name (prevents concurrent <CacheableImage> components from pruning a file with this name from cache).
+          const fileName = this.fileSystem.getFileNameFromUrl(url)
+          FileSystem.lockCacheFile(fileName, this.componentId)
 
-      // Init the image cache logic
-      if (!this.invalidUrl) {
-        this.subscription = this.fileSystem
-          .observable(url, this.componentId, cacheStrategy)
-          .pipe(takeUntil(this.unmounted$.pipe(skip(1))))
-          .subscribe((info) => this.onSourceLoaded(info))
+          // Init the image cache logic
+          this.subscription = this.fileSystem
+            .observable(url, this.componentId, cacheStrategy)
+            .pipe(takeUntil(this.unmounted$.pipe(skip(1))))
+            .subscribe((info) => this.onSourceLoaded(info))
+        }
       }
     }
 
@@ -260,27 +269,39 @@ const imageCacheHoc = <P extends object>(
       // Set urls from source prop data
       const url = traverse(prevProps).get(['source', 'uri'])
       const nextUrl = traverse(this.props).get(['source', 'uri'])
+      const isFile = new URL(nextUrl).protocol === 'file:'
 
       // Do nothing if url has not changed.
       if (url === nextUrl) return
 
       // Remove component cache lock on old image file, and add cache lock to new image file.
       const fileName = this.fileSystem.getFileNameFromUrl(url)
-      const nextFileName = this.fileSystem.getFileNameFromUrl(nextUrl)
-
-      FileSystem.unlockCacheFile(fileName, this.componentId)
-      FileSystem.lockCacheFile(nextFileName, this.componentId)
-
-      this.invalidUrl = !this._validateImageComponent()
       const cacheStrategy = traverse(this.props).get(['source', 'cache']) || 'immutable'
 
-      // Init the image cache logic
+      FileSystem.unlockCacheFile(fileName, this.componentId)
       this.subscription?.unsubscribe()
-      if (!this.invalidUrl) {
-        this.subscription = this.fileSystem
-          .observable(nextUrl, this.componentId, cacheStrategy)
-          .pipe(takeUntil(this.unmounted$.pipe(skip(1))))
-          .subscribe((info) => this.onSourceLoaded(info))
+
+      this.invalidUrl = !this._validateImageComponent()
+
+      // Init the image cache logic
+      if (isFile || !this.invalidUrl) {
+        if (isFile) {
+          this.onSourceLoaded({
+            path: url,
+            fileName: this.fileSystem.getFileNameFromUrl(url),
+          })
+        } else {
+          // Add a cache lock to file with this name (prevents concurrent <CacheableImage> components from pruning a file with this name from cache).
+          const nextFileName = this.fileSystem.getFileNameFromUrl(nextUrl)
+          FileSystem.lockCacheFile(nextFileName, this.componentId)
+
+          this.subscription = this.fileSystem
+            .observable(nextUrl, this.componentId, cacheStrategy)
+            .pipe(takeUntil(this.unmounted$.pipe(skip(1))))
+            .subscribe((info) => this.onSourceLoaded(info))
+        }
+      } else {
+        this.setState({ localFilePath: null })
       }
     }
 
@@ -310,7 +331,7 @@ const imageCacheHoc = <P extends object>(
 
     render() {
       // If media loaded, render full image component, else render placeholder.
-      if (this.state.localFilePath && !this.invalidUrl) {
+      if (this.state.localFilePath) {
         // Android caches images in memory, if we are rendering the image should have changed locally so appending a timestamp to the path forces it to be loaded from disk
         // The internals of te Android behaviour have not been investigated but perhaps it would be beneficial to use the last modified date instead
         const props = Object.assign({}, this.props, {
