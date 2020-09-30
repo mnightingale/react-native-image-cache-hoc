@@ -287,8 +287,8 @@ const imageCacheHoc = <P extends object>(
       if (isFile || !this.invalidUrl) {
         if (isFile) {
           this.onSourceLoaded({
-            path: url,
-            fileName: this.fileSystem.getFileNameFromUrl(url),
+            path: nextUrl,
+            fileName: this.fileSystem.getFileNameFromUrl(nextUrl),
           })
         } else {
           // Add a cache lock to file with this name (prevents concurrent <CacheableImage> components from pruning a file with this name from cache).
