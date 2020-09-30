@@ -236,7 +236,7 @@ const imageCacheHoc = <P extends object>(
       // Set url from source prop
       const url = traverse(this.props).get(['source', 'uri'])
       const cacheStrategy = traverse(this.props).get(['source', 'cache']) || 'immutable'
-      const isFile = new URL(url).protocol === 'file:'
+      const isFile = url && new URL(url).protocol === 'file:'
 
       if (isFile || !this.invalidUrl) {
         if (isFile) {
@@ -269,7 +269,7 @@ const imageCacheHoc = <P extends object>(
       // Set urls from source prop data
       const url = traverse(prevProps).get(['source', 'uri'])
       const nextUrl = traverse(this.props).get(['source', 'uri'])
-      const isFile = new URL(nextUrl).protocol === 'file:'
+      const isFile = nextUrl && new URL(nextUrl).protocol === 'file:'
 
       // Do nothing if url has not changed.
       if (url === nextUrl) return
