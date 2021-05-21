@@ -24,15 +24,17 @@ Or
 $ yarn add @mnightingale/react-native-image-cache-hoc
 ```
 
-Then, because this package has a depedency on [react-native-fs](https://github.com/itinance/react-native-fs) you will need to link this native package by running:
+The package has a depedency on [react-native-fs](https://github.com/itinance/react-native-fs) so if you may need to install it:
 
 ```bash
-$ react-native link react-native-fs
+$ npm install --save react-native-fs
 ```
 
-Linking react-native-fs **should only be done once**, reinstalling node_modules with npm or yarn does not require running the above command again.
+Or
 
-To troubleshoot linking, refer to [the react-native-fs installation instructions](https://github.com/itinance/react-native-fs#usage-ios).
+```bash
+$ yarn add react-native-fs
+```
 
 ## Usage
 
