@@ -15,13 +15,13 @@ React Native Higher Order Component that adds advanced caching functionality to 
 ## Installation
 
 ```bash
-$ npm install --save react-native-image-cache-hoc
+$ npm install --save @mnightingale/react-native-image-cache-hoc
 ```
 
 Or
 
 ```bash
-$ yarn add react-native-image-cache-hoc
+$ yarn add @mnightingale/react-native-image-cache-hoc
 ```
 
 Then, because this package has a depedency on [react-native-fs](https://github.com/itinance/react-native-fs) you will need to link this native package by running:
@@ -50,7 +50,7 @@ React Native Image Cache HOC creates an advanced image component, \<CacheableIma
 import React, { Component } from 'react'
 import { StyleSheet, Text, View, Image } from 'react-native'
 
-import { imageCacheHoc } from 'react-native-image-cache-hoc'
+import { imageCacheHoc } from '@mnightingale/react-native-image-cache-hoc'
 
 /**
  * Pass the native <Image> component into imageCacheHoc() to create the advanced image component <CacheableImage>.
@@ -216,7 +216,7 @@ The CacheableImage class returned by React Native Image Cache HOC includes a cou
 Use this method if you need to download a file to the local filesystem prior to rendering \<CacheableImage\> for some reason (perhaps to pre-warm the local cache). If calling this method repeatedly to cache a long list of files, be sure to use a queue and limit concurrency so your app performance does not suffer.
 
 ```js
-import { imageCacheHoc } from 'react-native-image-cache-hoc'
+import { imageCacheHoc } from '@mnightingale/react-native-image-cache-hoc'
 const CacheableImage = imageCacheHoc(Image)
 CacheableImage.cacheFile('https://i.redd.it/17ymhqwgbswz.jpg').then((localFileInfo) => {
   console.log(localFileInfo)
@@ -235,7 +235,7 @@ CacheableImage.cacheFile('https://i.redd.it/hhhim0kc5swz.jpg', true).then((local
 Delete all locally stored image files created by react-native-image-cache-hoc (cache AND permanent). Calling this method will cause a performance hit on your app until the local files are rebuilt.
 
 ```js
-import { imageCacheHoc } from 'react-native-image-cache-hoc'
+import { imageCacheHoc } from '@mnightingale/react-native-image-cache-hoc'
 const CacheableImage = imageCacheHoc(Image)
 CacheableImage.flush().then((flushResults) => {
   console.log(flushResults)
@@ -251,7 +251,7 @@ React Native Image Cache HOC must be run in a native environment to work correct
 **Add the following to your jest mocks:**
 
 ```js
-jest.mock('react-native-image-cache-hoc', () => {
+jest.mock('@mnightingale/react-native-image-cache-hoc', () => {
   const mockComponent = require('react-native/jest/mockComponent')
   const MockCacheableImage = mockComponent('Image')
 
