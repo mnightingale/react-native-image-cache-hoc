@@ -331,7 +331,7 @@ const imageCacheHoc = <P extends object>(
           },
         })
 
-        return <Wrapped key={this.state.loadedAt} {...(props as P)} />
+        return <Wrapped key={this.componentId} {...(props as P)} />
       } else {
         if (this.props.placeholder) {
           return this.props.placeholder
