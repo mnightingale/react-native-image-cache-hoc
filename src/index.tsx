@@ -44,9 +44,10 @@ export interface ReactNativeImageCacheHocProps {
   fileHostWhitelist?: string[]
 }
 
-export interface ReactNativeImageCacheHocState {
-  loadedAt: number
-  localFilePath: string | null
+interface ReactNativeImageCacheHocState {
+  source?: {
+    uri?: string
+  }
 }
 
 export interface ReactNativeImageCacheHocOptions {
@@ -161,8 +162,7 @@ const imageCacheHoc = <P extends object>(
 
       // Set initial state
       this.state = {
-        loadedAt: 0,
-        localFilePath: null,
+        source: undefined,
       }
 
       // Assign component unique ID for cache locking.
@@ -290,7 +290,7 @@ const imageCacheHoc = <P extends object>(
             .subscribe((info) => this.onSourceLoaded(info))
         }
       } else {
-        this.setState({ localFilePath: null })
+        this.setState({ source: undefined })
       }
     }
 
@@ -306,7 +306,13 @@ const imageCacheHoc = <P extends object>(
     }
 
     onSourceLoaded({ path }: CacheFileInfo) {
-      this.setState({ loadedAt: Date.now(), localFilePath: path })
+      this.setState({
+        source: path
+          ? {
+              uri: path + (Platform.OS === 'android' ? '?' + Date.now() : ''),
+            }
+          : undefined,
+      })
       this.invalidUrl = path === null
 
       if (path && this.props.onLoadFinished) {
@@ -320,16 +326,13 @@ const imageCacheHoc = <P extends object>(
 
     render() {
       // If media loaded, render full image component, else render placeholder.
-      if (this.state.localFilePath) {
+      if (this.state.source) {
         // Android caches images in memory, if we are rendering the image should have changed locally so appending a timestamp to the path forces it to be loaded from disk
         // The internals of te Android behaviour have not been investigated but perhaps it would be beneficial to use the last modified date instead
-        const props = Object.assign({}, this.props, {
-          source: {
-            uri:
-              this.state.localFilePath +
-              (Platform.OS === 'android' ? '?' + this.state.loadedAt : ''),
-          },
-        })
+        const props = {
+          ...this.props,
+          source: this.state.source,
+        }
 
         return <Wrapped key={this.componentId} {...(props as P)} />
       } else {

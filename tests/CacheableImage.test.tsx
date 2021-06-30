@@ -177,7 +177,7 @@ describe('CacheableImage', function () {
     // Ensure defaults set correctly
     cacheableImage.props.should.have.properties(mockData.mockCacheableImageProps)
     cacheableImage.state.should.have.properties({
-      localFilePath: null,
+      source: undefined,
     })
     cacheableImage.options.should.have.properties({
       validProtocols: ['https'],
@@ -321,7 +321,11 @@ describe('CacheableImage', function () {
           'file:///base/file/path/react-native-image-cache-hoc/d3b74e9fa8248a5805e2dcf17a8577acd28c089b.png',
       })
 
-      wrapper.setState({ localFilePath: './test.jpg' })
+      wrapper.setState({
+        source: {
+          uri: './test.jpg',
+        },
+      })
 
       expect(wrapper.prop('source')).toStrictEqual({
         uri: './test.jpg',
