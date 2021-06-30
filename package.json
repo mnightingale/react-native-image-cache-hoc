@@ -1,6 +1,6 @@
 {
   "name": "@mnightingale/react-native-image-cache-hoc",
-  "version": "3.2.2",
+  "version": "3.2.4",
   "description": "React Native Higher Order Component that adds advanced caching functionality to the react native Image component.",
   "keywords": [
     "react",
