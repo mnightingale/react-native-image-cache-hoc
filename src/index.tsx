@@ -15,7 +15,6 @@
 
 // Load dependencies.
 import React, { ReactNode } from 'react'
-import PropTypes from 'prop-types'
 import FileSystemFactory, { CacheFileInfo, FileSystem } from './FileSystem'
 import traverse from 'traverse'
 import validator from 'validator'
@@ -39,12 +38,10 @@ export interface OnLoadEvent {
 
 export interface ReactNativeImageCacheHocProps {
   source?: Source
-
   onLoadFinished?(event: OnLoadEvent): void
-
   style?: StyleProp<ImageStyle>
-
   placeholder?: ReactNode
+  fileHostWhitelist?: string[]
 }
 
 export interface ReactNativeImageCacheHocState {
@@ -85,14 +82,6 @@ const imageCacheHoc = <P extends object>(
     P & ReactNativeImageCacheHocProps,
     ReactNativeImageCacheHocState
   > {
-    static propTypes = {
-      fileHostWhitelist: PropTypes.array,
-      source: PropTypes.object.isRequired,
-      style: PropTypes.oneOfType([PropTypes.object, PropTypes.array]),
-      placeholder: PropTypes.element,
-      onLoadFinished: PropTypes.func,
-    }
-
     componentId: any
     unmounted$: BehaviorSubject<boolean>
     options: Required<ReactNativeImageCacheHocOptions>

@@ -69,19 +69,6 @@ describe('CacheableImage', function () {
     cacheableImage.options.should.have.properties(validOptions)
   })
 
-  it('Component property type validation should exist.', () => {
-    const CacheableImage = imageCacheHoc(Image)
-
-    // eslint-disable-next-line react/forbid-foreign-prop-types
-    Object.keys(CacheableImage.propTypes).should.deepEqual([
-      'fileHostWhitelist',
-      'source',
-      'style',
-      'placeholder',
-      'onLoadFinished',
-    ])
-  })
-
   it('#cacheFile static method should work as expected for cache dir files.', () => {
     const CacheableImage = imageCacheHoc(Image)
 

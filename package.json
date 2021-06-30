@@ -50,7 +50,6 @@
     "buffer": "^5.0.8",
     "crypto-js": "^3.1.9-1",
     "path": "^0.12.7",
-    "prop-types": "^15.6.0",
     "react-native-uuid": "^1.4.9",
     "rxjs": "^6.6.0",
     "traverse": "^0.6.6",
