@@ -397,6 +397,15 @@ export class FileSystem {
 
     try {
       await RNFSUnlinkIfExists(pathLib.resolve(this.baseFilePath + path))
+
+      const obs$ = FileSystem.cacheObservables[path]
+      if (obs$) {
+        obs$.next({
+          path: null,
+          fileName: path,
+        })
+      }
+
       return true
     } catch (error) {
       return false
