@@ -101,11 +101,7 @@ const imageCacheHoc = <P extends object>(
      * @returns {Promise} promise that resolves to an object that contains cached file info.
      */
     static async cacheFile(url: string): Promise<any> {
-      const fileSystem = FileSystemFactory(
-        options.cachePruneTriggerLimit || null,
-        options.fileDirName || null,
-      )
-      const localFilePath = await fileSystem.getLocalFilePathFromUrl(url)
+      const localFilePath = await this.fileSystem().getLocalFilePathFromUrl(url)
 
       return {
         url: url,
@@ -134,11 +130,7 @@ const imageCacheHoc = <P extends object>(
       mtime?: Date,
       ctime?: Date,
     ) {
-      const fileSystem = FileSystemFactory(
-        options.cachePruneTriggerLimit || null,
-        options.fileDirName || null,
-      )
-      return fileSystem.cacheLocalFile(local, url, move, mtime, ctime)
+      return this.fileSystem().cacheLocalFile(local, url, move, mtime, ctime)
     }
 
     /**
@@ -149,12 +141,16 @@ const imageCacheHoc = <P extends object>(
      * @returns {Promise} promise that resolves to an object that contains the flush results.
      */
     static async flush() {
-      const fileSystem = FileSystemFactory(
-        options.cachePruneTriggerLimit || null,
-        options.fileDirName || null,
-      )
+      return this.fileSystem().unlink('')
+    }
 
-      return fileSystem.unlink('')
+    /**
+     *  Export FileSystem for convenience.
+     *
+     * @returns {FileSystem}
+     */
+    static fileSystem() {
+      return FileSystemFactory(options.cachePruneTriggerLimit || null, options.fileDirName || null)
     }
 
     constructor(props: P) {
