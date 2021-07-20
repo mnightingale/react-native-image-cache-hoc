@@ -84,7 +84,7 @@
     "prettier": "^2.1.1",
     "react": "^16.0.0",
     "react-dom": "16",
-    "react-native": "^0.63.2",
+    "react-native": "^0.64.1",
     "should": "^13.1.2",
     "should-sinon": "^0.0.6",
     "sinon": "^4.1.3",
